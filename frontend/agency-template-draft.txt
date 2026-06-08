@@ -1,0 +1,2089 @@
+<template>
+  <div class="agency-page">
+    <!-- ===== 顶部导航 ===== -->
+    <header class="app-topbar" :class="{ 'topbar-scrolled': isScrolled }">
+      <div class="container">
+        <div class="topbar-inner">
+          <div class="topbar-brand">
+            <div class="brand-mark">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L4 7V17L12 22L20 17V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M12 8V16M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="brand-text">
+              <span class="brand-name">银发智盾</span>
+              <span class="brand-sub">机构管理端</span>
+            </div>
+          </div>
+          <nav class="nav-desktop">
+            <ul class="nav-list">
+              <li><a href="#dashboard" class="nav-link active">仪表盘</a></li>
+              <li class="nav-dropdown">
+                <a href="#management" class="nav-link">运营管理 <span class="nav-arrow">▾</span></a>
+                <ul class="nav-dropdown-simple">
+                  <li><a href="#dispatch">工单派单</a></li>
+                  <li><a href="#workers">服务人员</a></li>
+                  <li><a href="#schedule">排班管理</a></li>
+                  <li><a href="#evaluations">服务评价</a></li>
+                </ul>
+              </li>
+              <li class="nav-dropdown">
+                <a href="#monitoring" class="nav-link">监测预警 <span class="nav-arrow">▾</span></a>
+                <ul class="nav-dropdown-simple">
+                  <li><a href="#health">健康档案</a></li>
+                  <li><a href="#alerts">告警管理</a></li>
+                  <li><a href="#devices">设备管理</a></li>
+                </ul>
+              </li>
+              <li><a href="#activities" class="nav-link">活动管理</a></li>
+              <li><a href="#finance" class="nav-link">收费管理</a></li>
+              <li><a href="#notifications" class="nav-link">消息通知</a></li>
+            </ul>
+          </nav>
+          <div class="topbar-actions">
+            <button class="topbar-btn outline" @click="toggleAssistant">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/>
+                <path d="M5.5 6.5C5.5 6.5 6.5 5 8 5C9.5 5 10.5 6.5 10.5 6.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                <path d="M6 9H10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+              智能助手
+            </button>
+            <div class="user-avatar">
+              <span>管理员</span>
+              <div class="avatar-circle">👤</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== 告警通知横幅 ===== -->
+    <div v-if="pendingAlerts.length > 0" class="alert-banner" @click="openAlertList">
+      <div class="alert-icon">🔔</div>
+      <div class="alert-text">
+        有 <strong>{{ pendingAlerts.length }}</strong> 条待处理告警，
+        <span class="alert-link">点击查看</span>
+      </div>
+      <div class="alert-close" @click.stop="dismissAlertBanner">×</div>
+    </div>
+
+    <!-- ===== 内容区域 ===== -->
+    <div class="main-content">
+      <!-- ===== 统计卡片 ===== -->
+      <section id="dashboard" class="section metrics-section">
+        <div class="container">
+          <div class="section-header">
+            <h2 class="section-title">📊 运营总览</h2>
+            <p class="section-desc">实时掌握机构运营状况，数据驱动决策</p>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-card hover-lift">
+              <div class="metric-icon-wrap">
+                <span class="metric-icon">👤</span>
+              </div>
+              <div class="metric-content">
+                <div class="metric-num">{{ eldersCount }}</div>
+                <div class="metric-label">服务老人总数</div>
+                <div class="metric-sub">覆盖 {{ agenciesCount }} 个机构</div>
+              </div>
+            </div>
+            <div class="metric-card hover-lift">
+              <div class="metric-icon-wrap blue">
+                <span class="metric-icon">📋</span>
+              </div>
+              <div class="metric-content">
+                <div class="metric-num">{{ todayOrders }}</div>
+                <div class="metric-label">今日工单</div>
+                <div class="metric-sub">待处理 {{ pendingOrders }}</div>
+              </div>
+            </div>
+            <div class="metric-card hover-lift">
+              <div class="metric-icon-wrap green">
+                <span class="metric-icon">✅</span>
+              </div>
+              <div class="metric-content">
+                <div class="metric-num">{{ completedThisMonth }}</div>
+                <div class="metric-label">已完成（本月）</div>
+                <div class="metric-sub">完成率 {{ completionRate }}%</div>
+              </div>
+            </div>
+            <div class="metric-card hover-lift">
+              <div class="metric-icon-wrap purple">
+                <span class="metric-icon">🟢</span>
+              </div>
+              <div class="metric-content">
+                <div class="metric-num">{{ onlineWorkers }}</div>
+                <div class="metric-label">服务人员在线</div>
+                <div class="metric-sub">总人数 {{ totalWorkers }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 趋势图表 ===== -->
+      <section class="section chart-section">
+        <div class="container">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">📈 近7天工单趋势</h3>
+                <p class="chart-sub">实时监控工单动态，优化服务效率</p>
+              </div>
+              <button class="chart-btn" @click="openReportModal">查看完整报表</button>
+            </div>
+            <div class="chart-wrap">
+              <svg class="trend-chart" viewBox="0 0 420 160" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="trendArea" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3" />
+                    <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.02" />
+                  </linearGradient>
+                </defs>
+                <!-- 背景网格 -->
+                <g stroke="rgba(0,0,0,0.06)" stroke-width="1">
+                  <line x1="40" y1="20" x2="400" y2="20" />
+                  <line x1="40" y1="55" x2="400" y2="55" />
+                  <line x1="40" y1="90" x2="400" y2="90" />
+                  <line x1="40" y1="125" x2="400" y2="125" />
+                </g>
+                <!-- 面积填充 -->
+                <polygon :points="areaPoints" fill="url(#trendArea)" />
+                <!-- 趋势线 -->
+                <polyline
+                    fill="none"
+                    stroke="#3b82f6"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    :points="orderTrendPoints"
+                />
+                <!-- 数据点 -->
+                <g v-for="(v, i) in orderTrendValues" :key="i">
+                  <circle
+                      :cx="40 + i * 52"
+                      :cy="getYPosition(v)"
+                      r="4"
+                      fill="#fff"
+                      stroke="#3b82f6"
+                      stroke-width="2"
+                  />
+                </g>
+                <!-- X轴标签 -->
+                <g v-for="(d, i) in orderTrendLabels" :key="i">
+                  <text :x="40 + i * 52" y="148" class="axis-label">{{ d }}</text>
+                </g>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Tab 导航 ===== -->
+      <section class="section tabs-section">
+        <div class="container">
+          <div class="tabs-container">
+            <div class="tabs-header">
+              <button
+                  v-for="tab in tabs"
+                  :key="tab.key"
+                  class="tab-btn"
+                  :class="{ active: activeTab === tab.key }"
+                  @click="switchTab(tab.key)"
+              >
+                <span class="tab-icon">{{ tab.icon }}</span>
+                <span class="tab-label">{{ tab.label }}</span>
+              </button>
+            </div>
+
+            <div class="tab-content">
+              <!-- ===== 工单派单管理 ===== -->
+              <div v-if="activeTab === 'dispatch'" class="panel-inner">
+                <div class="panel-header">
+                  <div class="search-row">
+                    <input
+                        v-model="taskSearch"
+                        class="search-input"
+                        placeholder="搜索老人/工单号"
+                        @keyup.enter="refreshTasks"
+                    />
+                    <button type="button" class="search-btn" @click="refreshTasks">搜索</button>
+                  </div>
+                  <button type="button" class="btn-primary" @click="openCreateTaskModal">+ 新建服务工单</button>
+                </div>
+
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                    <tr>
+                      <th>工单号</th>
+                      <th>老人姓名</th>
+                      <th>服务类型</th>
+                      <th>状态</th>
+                      <th>服务人员</th>
+                      <th>预约时间</th>
+                      <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="t in filteredTasks" :key="t.id">
+                      <td class="mono">{{ workOrderNo(t) }}</td>
+                      <td>{{ elderNameMap[t.elderId] ?? t.elderId }}</td>
+                      <td>{{ serviceTypeLabel(t.serviceType) }}</td>
+                      <td>
+                          <span class="status-tag" :class="statusClass(t.status)">
+                            {{ statusLabel(t.status) }}
+                          </span>
+                      </td>
+                      <td>{{ assignedStaffName(t) }}</td>
+                      <td>{{ formatDateTime(t.appointmentTime) }}</td>
+                      <td>
+                        <div class="row-actions">
+                          <template v-if="t.status === 'NEW'">
+                            <button type="button" class="btn-blue" @click="openAssignModal(t)">派单</button>
+                            <button type="button" class="btn-detail" @click="openTaskDetail(t)">详情</button>
+                          </template>
+                          <template v-else-if="t.status === 'IN_PROGRESS' || t.status === 'ASSIGNED'">
+                            <button type="button" class="btn-green" @click="markTaskCompleted(t)">完成服务</button>
+                            <button type="button" class="btn-detail" @click="openTaskDetail(t)">详情</button>
+                          </template>
+                          <template v-else>
+                            <button type="button" class="btn-detail" @click="openTaskDetail(t)">详情</button>
+                          </template>
+                        </div>
+                      </td>
+                    </tr>
+                    </tbody>
+                  </table>
+                  <div v-if="filteredTasks.length === 0" class="empty">暂无工单</div>
+                </div>
+              </div>
+
+              <!-- ===== 服务人员管理 ===== -->
+              <div v-else-if="activeTab === 'workers'" class="panel-inner">
+                <div class="panel-header">
+                  <div class="search-row">
+                    <input
+                        v-model="workerSearch"
+                        class="search-input"
+                        placeholder="搜索姓名"
+                    />
+                    <button type="button" class="search-btn" @click="refreshWorkers">搜索</button>
+                  </div>
+                  <button type="button" class="btn-primary" @click="openAddWorkerModal">+ 添加服务人员</button>
+                </div>
+
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                    <tr>
+                      <th>姓名</th>
+                      <th>岗位</th>
+                      <th>联系电话</th>
+                      <th>状态</th>
+                      <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="w in filteredWorkers" :key="w.id">
+                      <td>{{ w.name }}</td>
+                      <td>{{ w.position }}</td>
+                      <td>{{ w.phone }}</td>
+                      <td>
+                          <span class="status-tag" :class="w.onlineStatus === 'ONLINE' ? 'online' : 'offline'">
+                            {{ w.onlineStatus === 'ONLINE' ? '在线' : '离线' }}
+                          </span>
+                      </td>
+                      <td>
+                        <div class="row-actions">
+                          <button type="button" class="btn-detail" @click="openEditWorkerModal(w)">编辑</button>
+                          <button type="button" class="btn-red" @click="deleteWorker(w.id)">删除</button>
+                        </div>
+                      </td>
+                    </tr>
+                    </tbody>
+                  </table>
+                  <div v-if="filteredWorkers.length === 0" class="empty">暂无服务人员</div>
+                </div>
+              </div>
+
+              <!-- ===== 排班管理 ===== -->
+              <div v-else-if="activeTab === 'schedule'" class="panel-inner">
+                <div class="panel-header">
+                  <div class="schedule-controls">
+                    <button class="btn-outline" @click="prevWeek">‹ 上一周</button>
+                    <span class="schedule-date">{{ currentWeekLabel }}</span>
+                    <button class="btn-outline" @click="nextWeek">下一周 ›</button>
+                  </div>
+                  <button type="button" class="btn-primary" @click="openAddScheduleModal">+ 添加排班</button>
+                </div>
+
+                <div class="schedule-grid">
+                  <div class="schedule-header">
+                    <div class="schedule-time">时间</div>
+                    <div v-for="day in weekDays" :key="day" class="schedule-day">{{ day }}</div>
+                  </div>
+                  <div v-for="hour in workHours" :key="hour" class="schedule-row">
+                    <div class="schedule-time">{{ hour }}:00</div>
+                    <div v-for="day in weekDays" :key="day" class="schedule-cell">
+                      <div v-for="shift in getShifts(day, hour)" :key="shift.id" class="shift-item" :class="shift.type">
+                        <div class="shift-name">{{ shift.workerName }}</div>
+                        <div class="shift-type">{{ shift.type === 'morning' ? '早班' : shift.type === 'afternoon' ? '中班' : '晚班' }}</div>
+                        <button class="shift-delete" @click="deleteShift(shift.id)">×</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="schedule-legend">
+                  <span><span class="dot morning"></span>早班</span>
+                  <span><span class="dot afternoon"></span>中班</span>
+                  <span><span class="dot night"></span>晚班</span>
+                </div>
+              </div>
+
+              <!-- ===== 服务评价 ===== -->
+              <div v-else-if="activeTab === 'evaluations'" class="panel-inner">
+                <div class="panel-header">
+                  <div class="search-row">
+                    <input
+                        v-model="evaluationSearch"
+                        class="search-input"
+                        placeholder="搜索老人/服务人员"
+                    />
+                    <button class="search-btn" @click="refreshEvaluations">搜索</button>
+                  </div>
+                  <div class="filter-group">
+                    <select v-model="evaluationFilter" class="filter-select">
+                      <option value="all">全部</option>
+                      <option value="excellent">非常满意</option>
+                      <option value="good">满意</option>
+                      <option value="normal">一般</option>
+                      <option value="poor">不满意</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="evaluation-stats">
+                  <div class="stat-item">
+                    <div class="stat-num">{{ totalEvaluations }}</div>
+                    <div class="stat-label">总评价数</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-num">{{ averageRating }}分</div>
+                    <div class="stat-label">平均评分</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-num">{{ satisfactionRate }}%</div>
+                    <div class="stat-label">满意度</div>
+                  </div>
+                </div>
+
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                    <tr>
+                      <th>评价ID</th>
+                      <th>老人</th>
+                      <th>服务人员</th>
+                      <th>服务类型</th>
+                      <th>评分</th>
+                      <th>评语</th>
+                      <th>评价时间</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="e in filteredEvaluations" :key="e.id">
+                      <td class="mono">{{ e.id.slice(0, 6) }}</td>
+                      <td>{{ e.elderName }}</td>
+                      <td>{{ e.workerName }}</td>
+                      <td>{{ serviceTypeLabel(e.serviceType) }}</td>
+                      <td>
+                        <div class="rating">
+                          <span class="stars">{{ '★'.repeat(e.rating) }}{{ '☆'.repeat(5 - e.rating) }}</span>
+                          <span class="rating-num">{{ e.rating }}分</span>
+                        </div>
+                      </td>
+                      <td>{{ e.comment || '—' }}</td>
+                      <td>{{ formatDateTime(e.createdAt) }}</td>
+                    </tr>
+                    </tbody>
+                  </table>
+                  <div v-if="filteredEvaluations.length === 0" class="empty">暂无评价记录</div>
+                </div>
+              </div>
+
+              <!-- ===== 健康档案 ===== -->
+              <div v-else-if="activeTab === 'health'" class="panel-inner">
+                <div class="panel-header">
+                  <div class="search-row">
+                    <input
+                        v-model="healthSearch"
+                        class="search-input"
+                        placeholder="搜索老人姓名"
+                    />
+                    <button type="button" class="search-btn" @click="refreshHealthRecords">搜索</button>
+                  </div>
+                  <div class="filter-group">
+                    <select v-model="healthFilter" class="filter-select">
+                      <option value="all">全部</option>
+                      <option value="normal">正常</option>
+                      <option value="attention">需关注</option>
+                      <option value="critical">异常</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                    <tr>
+                      <th>姓名</th>
+                      <th>年龄</th>
+                      <th>性别</th>
+                      <th>健康状态</th>
+                      <th>心率</th>
+                      <th>血压</th>
+                      <th>血氧</th>
+                      <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="e in filteredHealthRecords" :key="e.elderId">
+                      <td>{{ e.name }}</td>
+                      <td>{{ e.age }}岁</td>
+                      <td>{{ e.gender }}</td>
+                      <td>
+                          <span class="status-tag" :class="getHealthStatusClass(e.healthStatus)">
+                            {{ e.healthStatus || '正常' }}
+                          </span>
+                      </td>
+                      <td :class="{ crit: e.heartRate > 100 || e.heartRate < 60 }">
+                        {{ e.heartRate || '--' }} bpm
+                      </td>
+                      <td>{{ e.bloodPressure || '--' }}</td>
+                      <td :class="{ warn: e.bloodOxygen < 95 }">
+                        {{ e.bloodOxygen || '--' }}%
+                      </td>
+                      <td>
+                        <button class="btn-detail" @click="openHealthDetail(e)">查看详情</button>
+                      </td>
+                    </tr>
+                    </tbody>
+                  </table>
+                  <div v-if="filteredHealthRecords.length === 0" class="empty">暂无健康数据</div>
+                </div>
+              </div>
+
+              <!-- ===== 告警管理 ===== -->
+              <div v-else-if="activeTab === 'alerts'" class="panel-inner">
+                <div class="panel-header">
+                  <div class="search-row">
+                    <input
+                        v-model="alertSearch"
+                        class="search-input"
+                        placeholder="搜索老人/告警类型"
+                    />
+                    <button type="button" class="search-btn" @click="refreshAlerts">搜索</button>
+                  </div>
+                  <div class="filter-group">
+                    <select v-model="alertFilter" class="filter-select">
+                      <option value="all">全部</option>
+                      <option value="pending">待处理</option>
+                      <option value="processing">处理中</option>
+                      <option value="resolved">已处理</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                    <tr>
+                      <th>告警ID</th>
+                      <th>老人姓名</th>
+                      <th>告警类型</th>
+                      <th>告警时间</th>
+                      <th>状态</th>
+                      <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="a in filteredAlerts" :key="a.id">
+                      <td class="mono">{{ a.id.slice(0, 8) }}</td>
+                      <td>{{ a.elderName }}</td>
+                      <td>
+                          <span class="alert-type" :class="getAlertTypeClass(a.type)">
+                            {{ getAlertTypeLabel(a.type) }}
+                          </span>
+                      </td>
+                      <td>{{ formatDateTime(a.triggeredAt) }}</td>
+                      <td>
+                          <span class="status-tag" :class="getAlertStatusClass(a.status)">
+                            {{ getAlertStatusLabel(a.status) }}
+                          </span>
+                      </td>
+                      <td>
+                        <div class="row-actions">
+                          <button class="btn-detail" @click="openAlertDetail(a)">详情</button>
+                          <button v-if="a.status === 'PENDING'" class="btn-blue" @click="processAlert(a.id)">
+                            处理
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    </tbody>
+                  </table>
+                  <div v-if="filteredAlerts.length === 0" class="empty">暂无告警记录</div>
+                </div>
+              </div>
+
+              <!-- ===== 活动管理 ===== -->
+              <div v-else-if="activeTab === 'activities'" class="panel-inner">
+                <div class="panel-header">
+                  <button type="button" class="btn-primary" @click="openAddActivityModal">+ 发布活动</button>
+                  <div class="search-row">
+                    <input
+                        v-model="activitySearch"
+                        class="search-input"
+                        placeholder="搜索活动名称"
+                    />
+                    <button class="search-btn" @click="refreshActivities">搜索</button>
+                  </div>
+                </div>
+
+                <div class="activities-grid">
+                  <div v-for="a in filteredActivities" :key="a.id" class="activity-card hover-lift">
+                    <div class="activity-header">
+                      <div class="activity-title">{{ a.title }}</div>
+                      <div class="activity-status" :class="a.status">
+                        {{ a.status === 'upcoming' ? '即将开始' : a.status === 'ongoing' ? '进行中' : '已结束' }}
+                      </div>
+                    </div>
+                    <div class="activity-info">
+                      <div class="info-item">📅 {{ formatDateTime(a.startTime) }} ~ {{ formatDateTime(a.endTime) }}</div>
+                      <div class="info-item">📍 {{ a.location }}</div>
+                      <div class="info-item">👥 已报名 {{ a.registered }} / {{ a.maxParticipants }} 人</div>
+                      <div class="info-item">📝 {{ a.description || '暂无描述' }}</div>
+                    </div>
+                    <div class="activity-actions">
+                      <button class="btn-detail" @click="openActivityDetail(a)">查看详情</button>
+                      <button class="btn-blue" @click="openActivityRegistration(a)">报名管理</button>
+                      <button class="btn-green" @click="openActivityCheckin(a)">签到</button>
+                    </div>
+                  </div>
+                </div>
+                <div v-if="filteredActivities.length === 0" class="empty">暂无活动</div>
+              </div>
+
+              <!-- ===== 收费管理 ===== -->
+              <div v-else-if="activeTab === 'finance'" class="panel-inner">
+                <div class="panel-header">
+                  <div class="search-row">
+                    <input
+                        v-model="financeSearch"
+                        class="search-input"
+                        placeholder="搜索老人姓名"
+                    />
+                    <button class="search-btn" @click="refreshFinance">搜索</button>
+                  </div>
+                  <button type="button" class="btn-primary" @click="openAddFinanceModal">+ 新增收费</button>
+                </div>
+
+                <div class="finance-summary">
+                  <div class="summary-item">
+                    <div class="summary-num">¥ {{ totalIncome }}</div>
+                    <div class="summary-label">总收入</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-num">{{ financeRecords.length }}</div>
+                    <div class="summary-label">收费记录数</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-num">{{ pendingPayments }}</div>
+                    <div class="summary-label">待支付</div>
+                  </div>
+                </div>
+
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                    <tr>
+                      <th>记录ID</th>
+                      <th>老人</th>
+                      <th>服务类型</th>
+                      <th>金额</th>
+                      <th>支付状态</th>
+                      <th>支付时间</th>
+                      <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="f in filteredFinanceRecords" :key="f.id">
+                      <td class="mono">{{ f.id.slice(0, 6) }}</td>
+                      <td>{{ f.elderName }}</td>
+                      <td>{{ serviceTypeLabel(f.serviceType) }}</td>
+                      <td>¥ {{ f.amount }}</td>
+                      <td>
+                          <span class="status-tag" :class="f.status === 'paid' ? 'done' : 'pending'">
+                            {{ f.status === 'paid' ? '已支付' : '待支付' }}
+                          </span>
+                      </td>
+                      <td>{{ f.paidAt ? formatDateTime(f.paidAt) : '—' }}</td>
+                      <td>
+                        <button class="btn-detail" @click="openFinanceDetail(f)">详情</button>
+                        <button v-if="f.status === 'pending'" class="btn-blue" @click="markAsPaid(f.id)">标记支付</button>
+                      </td>
+                    </tr>
+                    </tbody>
+                  </table>
+                  <div v-if="filteredFinanceRecords.length === 0" class="empty">暂无收费记录</div>
+                </div>
+              </div>
+
+              <!-- ===== 消息通知 ===== -->
+              <div v-else-if="activeTab === 'notifications'" class="panel-inner">
+                <div class="panel-header">
+                  <button type="button" class="btn-primary" @click="openAddNotificationModal">+ 发布通知</button>
+                  <div class="search-row">
+                    <input
+                        v-model="notificationSearch"
+                        class="search-input"
+                        placeholder="搜索通知标题"
+                    />
+                    <button class="search-btn" @click="refreshNotifications">搜索</button>
+                  </div>
+                </div>
+
+                <div class="notification-list">
+                  <div v-for="n in filteredNotifications" :key="n.id" class="notification-card">
+                    <div class="notification-header">
+                      <div class="notification-title">{{ n.title }}</div>
+                      <div class="notification-status" :class="n.status">
+                        {{ n.status === 'published' ? '已发布' : n.status === 'draft' ? '草稿' : '已过期' }}
+                      </div>
+                    </div>
+                    <div class="notification-content">{{ n.content }}</div>
+                    <div class="notification-meta">
+                      <span>📅 {{ formatDateTime(n.createdAt) }}</span>
+                      <span>👤 {{ n.author }}</span>
+                      <span>👁️ {{ n.views }} 次阅读</span>
+                    </div>
+                    <div class="notification-actions">
+                      <button class="btn-detail" @click="openNotificationDetail(n)">详情</button>
+                      <button class="btn-blue" @click="editNotification(n)">编辑</button>
+                      <button class="btn-red" @click="deleteNotification(n.id)">删除</button>
+                    </div>
+                  </div>
+                </div>
+                <div v-if="filteredNotifications.length === 0" class="empty">暂无通知</div>
+              </div>
+
+              <!-- ===== 设备管理 ===== -->
+              <div v-else-if="activeTab === 'devices'" class="panel-inner">
+                <div class="panel-header">
+                  <div class="search-row">
+                    <input
+                        v-model="deviceSearch"
+                        class="search-input"
+                        placeholder="搜索设备ID/老人姓名"
+                    />
+                    <button class="search-btn" @click="refreshDevices">搜索</button>
+                  </div>
+                  <button type="button" class="btn-primary" @click="openAddDeviceModal">+ 添加设备</button>
+                </div>
+
+                <div class="device-grid">
+                  <div v-for="d in filteredDevices" :key="d.id" class="device-card">
+                    <div class="device-header">
+                      <div class="device-name">{{ d.name }}</div>
+                      <div class="device-status" :class="d.status">
+                        {{ d.status === 'online' ? '在线' : d.status === 'offline' ? '离线' : '低电量' }}
+                      </div>
+                    </div>
+                    <div class="device-info">
+                      <div class="info-item">📱 类型: {{ d.type }}</div>
+                      <div class="info-item">🔗 绑定老人: {{ d.elderName || '未绑定' }}</div>
+                      <div class="info-item">🔋 电量: {{ d.battery }}%</div>
+                      <div class="info-item">📅 最后在线: {{ formatDateTime(d.lastOnline) }}</div>
+                    </div>
+                    <div class="device-actions">
+                      <button class="btn-detail" @click="openDeviceDetail(d)">详情</button>
+                      <button class="btn-blue" @click="bindDevice(d)">绑定老人</button>
+                      <button class="btn-red" @click="deleteDevice(d.id)">删除</button>
+                    </div>
+                  </div>
+                </div>
+                <div v-if="filteredDevices.length === 0" class="empty">暂无设备</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== 智能助手弹窗 ===== -->
+    <Teleport to="body">
+      <div v-if="showAssistant" class="assistant-overlay" @click.self="showAssistant = false">
+        <div class="assistant-modal">
+          <div class="assistant-modal-head">
+            <div class="assistant-modal-title">
+              <div class="ai-icon-pulse">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.2"/>
+                  <path d="M10 6V10L13 13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div>
+                <h3>智慧助手</h3>
+                <span class="assistant-badge">DeepSeek</span>
+              </div>
+            </div>
+            <button class="assistant-close" @click="showAssistant = false">×</button>
+          </div>
+          <div class="assistant-messages">
+            <div v-for="m in chatMessages" :key="m.id" class="assistant-msg" :class="m.role">
+              <div class="assistant-bubble">{{ m.text }}</div>
+            </div>
+          </div>
+          <div class="assistant-quick">
+            <button v-for="p in quickPrompts" :key="p" class="assistant-chip" @click="applyQuickPrompt(p)">{{ p }}</button>
+          </div>
+          <div class="assistant-compose">
+            <input v-model="aiDraft" type="search" placeholder="输入问题，回车搜索..." @keydown.enter.prevent="sendAiMessage" />
+            <button :disabled="aiBusy" @click="sendAiMessage">
+              <svg v-if="!aiBusy" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M2 8L14 2L8 14L6 9L2 8Z" fill="currentColor"/>
+              </svg>
+              <span v-else class="loading-dot"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ===== 侧边栏 ===== -->
+    <div class="side-service">
+      <ul>
+        <li>
+          <a href="tel:400-000-0000" class="side-service-item">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <path d="M6.5 3.5L9 6L7.5 7.5C8.5 9.5 10.5 11.5 12.5 12.5L14 11L16.5 13.5V17.5C16.5 18.3 15.8 19 15 19C8.9 19 4 14.1 4 8C4 7.2 4.7 6.5 5.5 6.5H6.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+            <span class="side-service-popup">400-000-0000</span>
+          </a>
+        </li>
+        <li>
+          <a href="javascript:;" class="side-service-item" @click="toastDemo('微信号：silverGuard2024')">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <rect x="2" y="3" width="18" height="15" rx="3" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8 12C8 12 9.5 10 11 10C12.5 10 14 12 14 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span class="side-service-popup">微信咨询</span>
+          </a>
+        </li>
+        <li>
+          <a href="javascript:;" class="side-service-item backtop" :class="{ visible: showBackTop }" @click="scrollToTop">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <path d="M11 18V6M6 11L11 6L16 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="side-service-popup">返回顶部</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- ===== 报表弹窗 ===== -->
+    <div v-if="showReportModal" class="modal-overlay">
+      <div class="modal-card large">
+        <div class="modal-top">
+          <div class="modal-title">📊 完整数据报表</div>
+          <button class="modal-close" @click="showReportModal = false">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="report-grid">
+            <div class="report-card">
+              <h4>📈 工单趋势（近30天）</h4>
+              <div class="report-chart-placeholder">
+                <div class="bar-chart">
+                  <div v-for="(v, i) in monthlyOrderData" :key="i" class="bar-item">
+                    <div class="bar" :style="{ height: v / maxMonthlyOrders * 100 + '%' }"></div>
+                    <div class="bar-label">{{ i + 1 }}日</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="report-card">
+              <h4>📊 服务满意度分布</h4>
+              <div class="pie-chart">
+                <div class="pie-segment" style="--pct: 72; --color: #67c23a;"></div>
+                <div class="pie-segment" style="--pct: 20; --color: #3b82f6;"></div>
+                <div class="pie-segment" style="--pct: 8; --color: #e6a23c;"></div>
+              </div>
+              <div class="legend">
+                <span><span class="dot green"></span>非常满意 72%</span>
+                <span><span class="dot blue"></span>满意 20%</span>
+                <span><span class="dot orange"></span>一般 8%</span>
+              </div>
+            </div>
+            <div class="report-card">
+              <h4>📋 服务人员绩效</h4>
+              <div class="performance-list">
+                <div v-for="w in workerPerformance" :key="w.id" class="perf-item">
+                  <span class="perf-name">{{ w.name }}</span>
+                  <span class="perf-score">{{ w.score }}分</span>
+                  <div class="perf-bar">
+                    <div class="perf-fill" :style="{ width: w.score / 100 * 100 + '%' }"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-cta">
+            <button class="btn-primary" @click="exportReport">📄 导出完整报表（PDF）</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 健康详情弹窗 ===== -->
+    <div v-if="showHealthDetail" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-top">
+          <div class="modal-title">🏥 健康详情 - {{ currentHealthElder?.name }}</div>
+          <button class="modal-close" @click="showHealthDetail = false">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="detail-grid">
+            <div class="d-item"><span class="d-k">姓名</span><span class="d-v">{{ currentHealthElder?.name }}</span></div>
+            <div class="d-item"><span class="d-k">年龄</span><span class="d-v">{{ currentHealthElder?.age }}岁</span></div>
+            <div class="d-item"><span class="d-k">性别</span><span class="d-v">{{ currentHealthElder?.gender }}</span></div>
+            <div class="d-item"><span class="d-k">健康状态</span><span class="d-v">{{ currentHealthElder?.healthStatus || '正常' }}</span></div>
+            <div class="d-item"><span class="d-k">心率</span><span class="d-v">{{ currentHealthElder?.heartRate || '--' }} bpm</span></div>
+            <div class="d-item"><span class="d-k">血压</span><span class="d-v">{{ currentHealthElder?.bloodPressure || '--' }}</span></div>
+            <div class="d-item"><span class="d-k">血氧</span><span class="d-v">{{ currentHealthElder?.bloodOxygen || '--' }}%</span></div>
+            <div class="d-item"><span class="d-k">最近记录</span><span class="d-v">{{ formatDateTime(currentHealthElder?.lastUpdated) || '--' }}</span></div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-confirm" @click="showHealthDetail = false">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 告警详情弹窗 ===== -->
+    <div v-if="showAlertDetail" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-top">
+          <div class="modal-title">🔔 告警详情</div>
+          <button class="modal-close" @click="showAlertDetail = false">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="detail-grid">
+            <div class="d-item"><span class="d-k">告警ID</span><span class="d-v">{{ currentAlert?.id }}</span></div>
+            <div class="d-item"><span class="d-k">老人姓名</span><span class="d-v">{{ currentAlert?.elderName }}</span></div>
+            <div class="d-item"><span class="d-k">告警类型</span><span class="d-v">{{ getAlertTypeLabel(currentAlert?.type) }}</span></div>
+            <div class="d-item"><span class="d-k">告警时间</span><span class="d-v">{{ formatDateTime(currentAlert?.triggeredAt) }}</span></div>
+            <div class="d-item"><span class="d-k">状态</span><span class="d-v">{{ getAlertStatusLabel(currentAlert?.status) }}</span></div>
+            <div class="d-item"><span class="d-k">处理记录</span><span class="d-v">{{ currentAlert?.processLog || '暂无处理记录' }}</span></div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-confirm" @click="showAlertDetail = false">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Toast ===== -->
+    <div v-if="toast" class="toast">
+      <div class="toast-left">{{ toast.icon }}</div>
+      <div class="toast-right">
+        <div class="toast-title">{{ toast.title }}</div>
+        <div class="toast-desc">{{ toast.desc }}</div>
+      </div>
+      <button class="toast-close" @click="toast = null">×</button>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref, onUnmounted } from "vue";
+import type {
+  AgencyAnomalyReportDto,
+  AgencyClockInRecordDto,
+  DispatchTaskDto,
+  ServiceWorkerDto
+} from "../../api/agency";
+import {
+  assignWorker,
+  createTask as createDispatchTask,
+  deleteWorker as apiDeleteWorker,
+  listAnomalies,
+  listClockIns,
+  listTasks,
+  listWorkers,
+  addWorker,
+  processAnomaly,
+  updateTaskStatus
+} from "../../api/agency";
+import { listElders } from "../../api/elder";
+import type { ElderProfileDto } from "../../api/elder";
+
+type TabKey = "dispatch" | "workers" | "schedule" | "evaluations" | "health" | "alerts" | "activities" | "finance" | "notifications" | "devices";
+
+const activeTab = ref<TabKey>("dispatch");
+const isScrolled = ref(false);
+const showAssistant = ref(false);
+const showBackTop = ref(false);
+const aiBusy = ref(false);
+const aiDraft = ref("");
+
+const tabs = [
+  { key: "dispatch", icon: "", label: "工单派单" },
+  { key: "workers", icon: "", label: "服务人员" },
+  { key: "schedule", icon: "", label: "排班管理" },
+  { key: "evaluations", icon: "", label: "服务评价" },
+  { key: "health", icon: "", label: "健康档案" },
+  { key: "alerts", icon: "", label: "告警管理" },
+  { key: "activities", icon: "", label: "活动管理" },
+  { key: "finance", icon: "", label: "收费管理" },
+  { key: "notifications", icon: "", label: "消息通知" },
+  { key: "devices", icon: "", label: "设备管理" }
+];
+
+// ===== 聊天消息 =====
+interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+}
+
+const chatMessages = ref<ChatMessage[]>([
+  { id: "welcome", role: "assistant", text: "您好，我是银发智盾智慧助手。在下方输入问题即可获得解答。" }
+]);
+
+const quickPrompts = ["如何查看工单？", "添加服务人员", "发布活动", "查看健康档案"];
+
+// ===== 统计数据 =====
+const eldersCount = computed(() => elderList.value.length);
+const agenciesCount = ref(3);
+const totalWorkers = computed(() => workers.value.length);
+const onlineWorkers = computed(() => workers.value.filter(w => w.onlineStatus === "ONLINE").length);
+const todayOrders = computed(() => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = now.getDate();
+  return tasks.value.filter(t => {
+    const dt = new Date(t.appointmentTime);
+    return dt.getFullYear() === y && dt.getMonth() === m && dt.getDate() === d;
+  }).length;
+});
+const pendingOrders = computed(() => tasks.value.filter(t => t.status === "NEW").length);
+const completedThisMonth = computed(() => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  return tasks.value.filter(t => t.status === "COMPLETED").filter(t => {
+    const dt = new Date(t.appointmentTime);
+    return dt.getFullYear() === y && dt.getMonth() === m;
+  }).length;
+});
+const completionRate = computed(() => {
+  const total = tasks.value.length;
+  if (total === 0) return 0;
+  const completed = tasks.value.filter(t => t.status === "COMPLETED").length;
+  return Math.round(completed / total * 100);
+});
+
+// ===== 趋势数据 =====
+const orderTrendLabels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+const orderTrendValues = [8, 12, 10, 15, 9, 11, 13];
+const orderTrendPoints = computed(() => {
+  return orderTrendValues.map((v, i) => `${40 + i * 52},${getYPosition(v)}`).join(" ");
+});
+const areaPoints = computed(() => {
+  const points = orderTrendValues.map((v, i) => `${40 + i * 52},${getYPosition(v)}`).join(" ");
+  return `${40 + 0 * 52},140 ${points} ${40 + 6 * 52},140`;
+});
+
+function getYPosition(v: number) {
+  const max = Math.max(...orderTrendValues, 1);
+  return 125 - (v / max) * 100;
+}
+
+// ===== 数据 =====
+const tasks = ref<DispatchTaskDto[]>([]);
+const workers = ref<ServiceWorkerDto[]>([]);
+const elderList = ref<ElderProfileDto[]>([]);
+const anomalies = ref<AgencyAnomalyReportDto[]>([]);
+const clockIns = ref<AgencyClockInRecordDto[]>([]);
+
+const elderNameMap = reactive<Record<string, string>>({});
+
+// ===== 健康档案 =====
+const healthSearch = ref("");
+const healthFilter = ref("all");
+const healthRecords = ref([
+  { elderId: "E001", name: "张大爷", age: 72, gender: "男", healthStatus: "正常", heartRate: 78, bloodPressure: "125/80", bloodOxygen: 97, lastUpdated: "2026-05-18T10:30:00" },
+  { elderId: "E002", name: "李奶奶", age: 68, gender: "女", healthStatus: "需关注", heartRate: 105, bloodPressure: "140/90", bloodOxygen: 93, lastUpdated: "2026-05-18T09:15:00" },
+  { elderId: "E003", name: "王爷爷", age: 75, gender: "男", healthStatus: "正常", heartRate: 72, bloodPressure: "118/76", bloodOxygen: 96, lastUpdated: "2026-05-18T08:45:00" },
+  { elderId: "E004", name: "赵奶奶", age: 70, gender: "女", healthStatus: "异常", heartRate: 112, bloodPressure: "150/95", bloodOxygen: 89, lastUpdated: "2026-05-18T07:30:00" },
+]);
+
+const filteredHealthRecords = computed(() => {
+  let list = healthRecords.value;
+  if (healthFilter.value !== "all") {
+    list = list.filter(e => e.healthStatus === healthFilter.value);
+  }
+  const kw = healthSearch.value.trim().toLowerCase();
+  if (kw) {
+    list = list.filter(e => e.name.includes(kw));
+  }
+  return list;
+});
+
+function getHealthStatusClass(status: string) {
+  if (status === "需关注") return "pending";
+  if (status === "异常") return "danger";
+  return "done";
+}
+
+// ===== 告警管理 =====
+const alertSearch = ref("");
+const alertFilter = ref("all");
+const alertBannerDismissed = ref(false);
+const alerts = ref([
+  { id: "AL001", elderName: "李奶奶", type: "FALL", triggeredAt: "2026-05-18T08:30:00", status: "PENDING", processLog: "" },
+  { id: "AL002", elderName: "赵奶奶", type: "VITALS", triggeredAt: "2026-05-18T07:15:00", status: "PROCESSING", processLog: "已联系家属" },
+  { id: "AL003", elderName: "张大爷", type: "SOS", triggeredAt: "2026-05-17T22:00:00", status: "RESOLVED", processLog: "SOS已处理" },
+]);
+
+const pendingAlerts = computed(() => alerts.value.filter(a => a.status === "PENDING"));
+
+const filteredAlerts = computed(() => {
+  let list = alerts.value;
+  if (alertFilter.value !== "all") {
+    list = list.filter(a => a.status === alertFilter.value.toUpperCase());
+  }
+  const kw = alertSearch.value.trim().toLowerCase();
+  if (kw) {
+    list = list.filter(a => a.elderName.includes(kw) || a.type.toLowerCase().includes(kw));
+  }
+  return list;
+});
+
+function getAlertTypeLabel(type: string) {
+  const map: Record<string, string> = {
+    SOS: "SOS求助",
+    FALL: "跌倒预警",
+    VITALS: "体征异常",
+    BATTERY: "电量不足"
+  };
+  return map[type] || type;
+}
+
+function getAlertTypeClass(type: string) {
+  const map: Record<string, string> = {
+    SOS: "alert-sos",
+    FALL: "alert-fall",
+    VITALS: "alert-vitals",
+    BATTERY: "alert-battery"
+  };
+  return map[type] || "";
+}
+
+function getAlertStatusLabel(status: string) {
+  const map: Record<string, string> = {
+    PENDING: "待处理",
+    PROCESSING: "处理中",
+    RESOLVED: "已处理"
+  };
+  return map[status] || status;
+}
+
+function getAlertStatusClass(status: string) {
+  const map: Record<string, string> = {
+    PENDING: "pending",
+    PROCESSING: "doing",
+    RESOLVED: "done"
+  };
+  return map[status] || "";
+}
+
+function dismissAlertBanner() {
+  alertBannerDismissed.value = true;
+}
+
+function openAlertList() {
+  activeTab.value = "alerts";
+}
+
+// ===== 活动管理 =====
+const activitySearch = ref("");
+const activities = ref([
+  { id: "A001", title: "重阳节敬老活动", startTime: "2026-05-20T09:00:00", endTime: "2026-05-20T17:00:00", location: "养老院活动中心", maxParticipants: 50, registered: 32, status: "upcoming", description: "组织老人参观公园、制作重阳糕" },
+  { id: "A002", title: "书法兴趣班", startTime: "2026-05-18T14:00:00", endTime: "2026-05-18T16:00:00", location: "书画室", maxParticipants: 20, registered: 18, status: "ongoing", description: "邀请书法老师指导老人练习书法" },
+  { id: "A003", title: "春季健康讲座", startTime: "2026-05-15T09:30:00", endTime: "2026-05-15T11:30:00", location: "多功能厅", maxParticipants: 80, registered: 68, status: "ended", description: "邀请医生讲解春季养生知识" },
+]);
+
+const filteredActivities = computed(() => {
+  const kw = activitySearch.value.trim().toLowerCase();
+  if (!kw) return activities.value;
+  return activities.value.filter(a => a.title.includes(kw));
+});
+
+// ===== 收费管理 =====
+const financeSearch = ref("");
+const financeRecords = ref([
+  { id: "F001", elderName: "张大爷", serviceType: "NURSING", amount: 25.00, status: "paid", paidAt: "2026-05-18T12:00:00" },
+  { id: "F002", elderName: "李奶奶", serviceType: "HOUSEKEEPING", amount: 120.00, status: "pending", paidAt: null },
+  { id: "F003", elderName: "王爷爷", serviceType: "ACCOMPANY", amount: 80.00, status: "paid", paidAt: "2026-05-18T10:30:00" },
+]);
+
+const filteredFinanceRecords = computed(() => {
+  const kw = financeSearch.value.trim().toLowerCase();
+  if (!kw) return financeRecords.value;
+  return financeRecords.value.filter(f => f.elderName.includes(kw));
+});
+
+const totalIncome = computed(() => {
+  return financeRecords.value.reduce((acc, f) => f.status === 'paid' ? acc + f.amount : acc, 0).toFixed(2);
+});
+
+const pendingPayments = computed(() => financeRecords.value.filter(f => f.status === 'pending').length);
+
+// ===== 消息通知 =====
+const notificationSearch = ref("");
+const notifications = ref([
+  { id: "N001", title: "系统升级通知", content: "系统将于5月20日凌晨2:00-5:00进行升级维护，期间部分功能可能不可用。", status: "published", createdAt: "2026-05-18T10:00:00", author: "管理员", views: 156 },
+  { id: "N002", title: "夏季防暑温馨提示", content: "夏季来临，请各位老人注意防暑降温，多喝水，避免在高温时段外出活动。", status: "published", createdAt: "2026-05-17T14:00:00", author: "护理部", views: 89 },
+  { id: "N003", title: "活动预告：端午包粽子", content: "端午节将至，我们将于5月28日组织包粽子活动，欢迎各位老人报名参加。", status: "draft", createdAt: "2026-05-16T09:00:00", author: "活动部", views: 0 },
+]);
+
+const filteredNotifications = computed(() => {
+  const kw = notificationSearch.value.trim().toLowerCase();
+  if (!kw) return notifications.value;
+  return notifications.value.filter(n => n.title.includes(kw));
+});
+
+// ===== 设备管理 =====
+const deviceSearch = ref("");
+const devices = ref([
+  { id: "D001", name: "智能手环 - 张大爷", type: "智能手环", elderName: "张大爷", battery: 85, status: "online", lastOnline: "2026-05-18T11:30:00" },
+  { id: "D002", name: "血压计 - 李奶奶", type: "血压计", elderName: "李奶奶", battery: 23, status: "low", lastOnline: "2026-05-18T08:15:00" },
+  { id: "D003", name: "跌倒检测器 - 王爷爷", type: "跌倒检测器", elderName: "王爷爷", battery: 0, status: "offline", lastOnline: "2026-05-17T22:00:00" },
+  { id: "D004", name: "智能手环 - 未绑定", type: "智能手环", elderName: null, battery: 100, status: "online", lastOnline: "2026-05-18T10:00:00" },
+]);
+
+const filteredDevices = computed(() => {
+  const kw = deviceSearch.value.trim().toLowerCase();
+  if (!kw) return devices.value;
+  return devices.value.filter(d =>
+      d.id.includes(kw) || d.name.includes(kw) || (d.elderName && d.elderName.includes(kw))
+  );
+});
+
+// ===== 排班管理 =====
+const weekDays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+const workHours = Array.from({ length: 12 }, (_, i) => i + 8);
+const currentWeekStart = ref(new Date());
+const schedules = ref([
+  { id: "S001", day: "周一", hour: 9, workerName: "王阿姨", type: "morning" },
+  { id: "S002", day: "周二", hour: 14, workerName: "李师傅", type: "afternoon" },
+  { id: "S003", day: "周三", hour: 19, workerName: "张护士", type: "night" },
+]);
+
+const currentWeekLabel = computed(() => {
+  const start = currentWeekStart.value;
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  return `${start.getMonth() + 1}月${start.getDate()}日 - ${end.getMonth() + 1}月${end.getDate()}日`;
+});
+
+function prevWeek() {
+  currentWeekStart.value.setDate(currentWeekStart.value.getDate() - 7);
+}
+
+function nextWeek() {
+  currentWeekStart.value.setDate(currentWeekStart.value.getDate() + 7);
+}
+
+function getShifts(day: string, hour: number) {
+  return schedules.value.filter(s => s.day === day && s.hour === hour);
+}
+
+function deleteShift(id: string) {
+  schedules.value = schedules.value.filter(s => s.id !== id);
+}
+
+// ===== 服务评价 =====
+const evaluationSearch = ref("");
+const evaluationFilter = ref("all");
+const evaluations = ref([
+  { id: "E001", elderName: "张大爷", workerName: "王阿姨", serviceType: "NURSING", rating: 5, comment: "服务非常周到，老人很满意", createdAt: "2026-05-18T10:30:00" },
+  { id: "E002", elderName: "李奶奶", workerName: "李师傅", serviceType: "HOUSEKEEPING", rating: 4, comment: "清洁很干净", createdAt: "2026-05-18T09:15:00" },
+  { id: "E003", elderName: "王爷爷", workerName: "张护士", serviceType: "ACCOMPANY", rating: 3, comment: "陪诊服务还可以", createdAt: "2026-05-18T08:45:00" },
+]);
+
+const filteredEvaluations = computed(() => {
+  let list = evaluations.value;
+  if (evaluationFilter.value !== "all") {
+    list = list.filter(e => e.rating === parseInt(evaluationFilter.value));
+  }
+  const kw = evaluationSearch.value.trim().toLowerCase();
+  if (kw) {
+    list = list.filter(e => e.elderName.includes(kw) || e.workerName.includes(kw));
+  }
+  return list;
+});
+
+const totalEvaluations = computed(() => evaluations.value.length);
+const averageRating = computed(() => {
+  if (evaluations.value.length === 0) return 0;
+  const sum = evaluations.value.reduce((acc, e) => acc + e.rating, 0);
+  return (sum / evaluations.value.length).toFixed(1);
+});
+const satisfactionRate = computed(() => {
+  if (evaluations.value.length === 0) return 0;
+  const satisfied = evaluations.value.filter(e => e.rating >= 4).length;
+  return Math.round(satisfied / evaluations.value.length * 100);
+});
+
+// ===== 工单相关 =====
+const taskSearch = ref("");
+const filteredTasks = computed(() => {
+  const k = taskSearch.value.trim();
+  if (!k) return tasks.value;
+  const kw = k.toLowerCase();
+  return tasks.value.filter(t => {
+    const elderName = elderNameMap[t.elderId] ?? t.elderId;
+    const assigned = t.assignedWorkerId ? workers.value.find(w => w.id === t.assignedWorkerId)?.name ?? "" : "";
+    const wo = workOrderNo(t).toLowerCase();
+    return (
+        wo.includes(kw) ||
+        t.id.toLowerCase().includes(kw) ||
+        t.elderId.toLowerCase().includes(kw) ||
+        elderName.toLowerCase().includes(kw) ||
+        t.serviceType.toLowerCase().includes(kw) ||
+        assigned.toLowerCase().includes(kw)
+    );
+  });
+});
+
+function workOrderNo(t: DispatchTaskDto) {
+  return "WO" + t.id.replace(/-/g, "").slice(0, 6).toUpperCase();
+}
+
+function serviceTypeLabel(st: string) {
+  const m: Record<string, string> = { NURSING: "助餐", BATH: "助浴", HOUSEKEEPING: "保洁", ACCOMPANY: "陪诊" };
+  return m[st] ?? st;
+}
+
+function statusLabel(st?: string) {
+  if (!st) return "";
+  switch (st) {
+    case "NEW": return "待派单";
+    case "IN_PROGRESS": return "服务中";
+    case "COMPLETED": return "已完成";
+    case "ASSIGNED": return "派单中";
+    default: return st;
+  }
+}
+
+function statusClass(st: DispatchTaskDto["status"]) {
+  if (st === "NEW") return "pending";
+  if (st === "IN_PROGRESS" || st === "ASSIGNED") return "doing";
+  if (st === "COMPLETED") return "done";
+  return "pending";
+}
+
+function assignedStaffName(t: DispatchTaskDto) {
+  if (!t.assignedWorkerId) return "—";
+  return workers.value.find(w => w.id === t.assignedWorkerId)?.name ?? "—";
+}
+
+const workerSearch = ref("");
+const filteredWorkers = computed(() => {
+  const k = workerSearch.value.trim();
+  if (!k) return workers.value;
+  const kw = k.toLowerCase();
+  return workers.value.filter(w => w.name.includes(kw) || w.position.includes(kw));
+});
+
+// ===== 工具函数 =====
+function formatDateTime(isoOrTs: string) {
+  if (!isoOrTs) return "";
+  const d = new Date(isoOrTs);
+  if (Number.isNaN(d.getTime())) return String(isoOrTs);
+  return d.toLocaleString();
+}
+
+const showReportModal = ref(false);
+const monthlyOrderData = [8, 12, 10, 15, 9, 11, 13, 10, 14, 12, 16, 11, 9, 13, 15, 10, 12, 14, 11, 13, 15, 12, 10, 14, 11, 13, 9, 12, 14, 10];
+const maxMonthlyOrders = Math.max(...monthlyOrderData);
+const workerPerformance = [
+  { id: "W001", name: "王阿姨", score: 95 },
+  { id: "W002", name: "李师傅", score: 88 },
+  { id: "W003", name: "张护士", score: 92 },
+];
+
+// ===== 弹窗控制 =====
+const showHealthDetail = ref(false);
+const currentHealthElder = ref<any>(null);
+const showAlertDetail = ref(false);
+const currentAlert = ref<any>(null);
+const showCreateTaskModal = ref(false);
+const showAssignModal = ref(false);
+const showTaskDetailModal = ref(false);
+const selectedTask = ref<DispatchTaskDto | null>(null);
+
+// ===== Toast =====
+const toast = ref<{ icon: string; title: string; desc: string } | null>(null);
+let toastTimer: number | undefined = undefined;
+
+function showToast(payload: { icon: string; title: string; desc: string }) {
+  toast.value = payload;
+  if (toastTimer !== undefined) window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => {
+    toast.value = null;
+    toastTimer = undefined;
+  }, 3000);
+}
+
+function toastDemo(msg: string) {
+  alert(msg);
+}
+
+// ===== 操作函数 =====
+function switchTab(key: TabKey) {
+  activeTab.value = key;
+}
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function toggleAssistant() {
+  showAssistant.value = !showAssistant.value;
+}
+
+function sendAiMessage() {
+  const text = aiDraft.value.trim();
+  if (!text || aiBusy.value) return;
+  chatMessages.value.push({ id: `m-${Date.now()}`, role: "user", text });
+  aiDraft.value = "";
+  aiBusy.value = true;
+  setTimeout(() => {
+    chatMessages.value.push({ id: `m-${Date.now() + 1}`, role: "assistant", text: `收到您的提问："${text}"。我正在为您查询相关信息，请稍候...` });
+    aiBusy.value = false;
+  }, 800);
+}
+
+function applyQuickPrompt(p: string) {
+  aiDraft.value = p;
+  sendAiMessage();
+}
+
+function openReportModal() {
+  showReportModal.value = true;
+}
+
+function exportReport() {
+  showReportModal.value = false;
+  showToast({ icon: "✓", title: "报表已生成", desc: "完整报表已导出为PDF文件" });
+}
+
+function openHealthDetail(e: any) {
+  currentHealthElder.value = e;
+  showHealthDetail.value = true;
+}
+
+function openAlertDetail(a: any) {
+  currentAlert.value = a;
+  showAlertDetail.value = true;
+}
+
+function processAlert(id: string) {
+  const alert = alerts.value.find(a => a.id === id);
+  if (alert) {
+    alert.status = "PROCESSING";
+    showToast({ icon: "✅", title: "告警已处理", desc: `告警 ${id} 状态已更新为处理中` });
+  }
+}
+
+function openAddScheduleModal() {
+  showToast({ icon: "📅", title: "添加排班", desc: "打开排班添加表单" });
+}
+
+function openAddActivityModal() {
+  showToast({ icon: "🎨", title: "发布活动", desc: "打开活动发布表单" });
+}
+
+function openActivityDetail(a: any) {
+  showToast({ icon: "📋", title: "活动详情", desc: `查看 ${a.title} 的详细信息` });
+}
+
+function openActivityRegistration(a: any) {
+  showToast({ icon: "👥", title: "报名管理", desc: `管理 ${a.title} 的报名情况` });
+}
+
+function openActivityCheckin(a: any) {
+  showToast({ icon: "✅", title: "签到", desc: `进行 ${a.title} 的签到操作` });
+}
+
+function openAddFinanceModal() {
+  showToast({ icon: "💰", title: "新增收费", desc: "打开收费录入表单" });
+}
+
+function openFinanceDetail(f: any) {
+  showToast({ icon: "📋", title: "收费详情", desc: `查看 ${f.elderName} 的收费记录` });
+}
+
+function markAsPaid(id: string) {
+  const record = financeRecords.value.find(f => f.id === id);
+  if (record) {
+    record.status = "paid";
+    record.paidAt = new Date().toISOString();
+    showToast({ icon: "✅", title: "已标记支付", desc: `收费记录 ${id} 已标记为已支付` });
+  }
+}
+
+function openAddNotificationModal() {
+  showToast({ icon: "📨", title: "发布通知", desc: "打开通知发布表单" });
+}
+
+function openNotificationDetail(n: any) {
+  showToast({ icon: "📋", title: "通知详情", desc: `查看 ${n.title} 的详细内容` });
+}
+
+function editNotification(n: any) {
+  showToast({ icon: "✏️", title: "编辑通知", desc: `编辑 ${n.title}` });
+}
+
+function deleteNotification(id: string) {
+  if (confirm("确定删除该通知吗？")) {
+    notifications.value = notifications.value.filter(n => n.id !== id);
+    showToast({ icon: "✓", title: "已删除", desc: "通知已移除" });
+  }
+}
+
+function openAddDeviceModal() {
+  showToast({ icon: "📱", title: "添加设备", desc: "打开设备添加表单" });
+}
+
+function openDeviceDetail(d: any) {
+  showToast({ icon: "📋", title: "设备详情", desc: `查看 ${d.name} 的详细信息` });
+}
+
+function bindDevice(d: any) {
+  if (d.elderName) {
+    showToast({ icon: "🔗", title: "解绑设备", desc: `解绑 ${d.name} 与 ${d.elderName} 的绑定关系` });
+  } else {
+    showToast({ icon: "🔗", title: "绑定设备", desc: `为 ${d.name} 绑定老人` });
+  }
+}
+
+function deleteDevice(id: string) {
+  if (confirm("确定删除该设备吗？")) {
+    devices.value = devices.value.filter(d => d.id !== id);
+    showToast({ icon: "✓", title: "已删除", desc: "设备已移除" });
+  }
+}
+
+function openCreateTaskModal() {
+  showCreateTaskModal.value = true;
+}
+
+function openAssignModal(t: DispatchTaskDto) {
+  selectedTask.value = t;
+  showAssignModal.value = true;
+}
+
+function openTaskDetail(t: DispatchTaskDto) {
+  selectedTask.value = t;
+  showTaskDetailModal.value = true;
+}
+
+async function markTaskCompleted(t: DispatchTaskDto) {
+  await updateTaskStatus(t.id, "COMPLETED");
+  showToast({ icon: "✓", title: "完成服务", desc: "工单状态已更新为已完成（示例）。" });
+  await refreshTasks();
+}
+
+function openAddWorkerModal() {
+  showToast({ icon: "👤", title: "添加服务人员", desc: "打开添加服务人员表单" });
+}
+
+function openEditWorkerModal(w: ServiceWorkerDto) {
+  showToast({ icon: "✏️", title: "编辑服务人员", desc: `编辑 ${w.name} 的信息` });
+}
+
+async function deleteWorker(id: string) {
+  if (!confirm("确定删除该服务人员吗？")) return;
+  await apiDeleteWorker(id);
+  showToast({ icon: "✓", title: "删除成功", desc: "服务人员已移除（示例）。" });
+  await refreshWorkers();
+}
+
+function refreshHealthRecords() {}
+function refreshAlerts() {}
+function refreshActivities() {}
+function refreshFinance() {}
+function refreshNotifications() {}
+function refreshDevices() {}
+function refreshEvaluations() {}
+
+// ===== 数据加载 =====
+async function refreshTasks() {
+  tasks.value = await listTasks();
+}
+
+async function refreshWorkers() {
+  workers.value = await listWorkers();
+}
+
+async function refreshAll() {
+  const elders = await listElders();
+  elderList.value = elders;
+  await refreshWorkers();
+  await refreshTasks();
+}
+
+async function loadReports() {
+  anomalies.value = await listAnomalies();
+  clockIns.value = await listClockIns();
+}
+
+// ===== 滚动处理 =====
+function handleScroll() {
+  isScrolled.value = window.scrollY > 50;
+  showBackTop.value = window.scrollY > 500;
+}
+
+onMounted(async () => {
+  await refreshAll();
+  window.addEventListener("scroll", handleScroll);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("scroll", handleScroll);
+});
+</script>
+
+<style scoped>
+/* ===== 全局重置 ===== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+.agency-page {
+  font-family: 'Inter', 'Noto Sans SC', -apple-system, sans-serif;
+  color: #1a3347;
+  background: #f8fafc;
+  -webkit-font-smoothing: antialiased;
+  padding-top: 72px;
+}
+
+.container { max-width: 1200px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); }
+.section { padding: clamp(32px, 4vw, 48px) 0; }
+
+/* ===== 顶部导航 ===== */
+.app-topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  padding: 14px 0; background: #fff;
+  border-bottom: 1px solid rgba(0,0,0,.04);
+  transition: all .3s;
+}
+.app-topbar.topbar-scrolled {
+  background: rgba(255,255,255,.98);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 4px 20px rgba(0,0,0,.06);
+  padding: 10px 0;
+}
+.topbar-inner {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.topbar-brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+  width: 42px; height: 42px; border-radius: 12px;
+  background: linear-gradient(135deg, #1f6aa5, #174d7a);
+  display: flex; align-items: center; justify-content: center; color: #fff;
+}
+.brand-name { font-size: 18px; font-weight: 700; }
+.brand-sub { font-size: 10px; color: #94a3b8; letter-spacing: 2px; }
+.nav-desktop { margin: 0 24px; }
+.nav-list { display: flex; align-items: center; gap: 2px; list-style: none; }
+.nav-link {
+  padding: 8px 14px; border-radius: 6px;
+  font-size: 13px; font-weight: 500; color: #475569;
+  text-decoration: none; transition: all .2s;
+}
+.nav-link:hover { background: #f1f5f9; color: #1f6aa5; }
+.nav-link.active { color: #1f6aa5; background: #eff6ff; }
+.nav-arrow { font-size: 9px; opacity: .5; }
+.nav-dropdown { position: relative; }
+.nav-dropdown-simple {
+  position: absolute; top: 100%; left: 0; padding-top: 6px;
+  opacity: 0; visibility: hidden; transition: all .3s;
+  list-style: none; min-width: 160px; background: #fff;
+  border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.1);
+  pointer-events: none;
+}
+.nav-dropdown:hover .nav-dropdown-simple {
+  opacity: 1; visibility: visible; pointer-events: auto;
+}
+.nav-dropdown-simple li { border-bottom: 1px solid #f1f5f9; }
+.nav-dropdown-simple a {
+  display: block; padding: 10px 16px; font-size: 13px; color: #475569;
+  text-decoration: none; transition: all .2s;
+}
+.nav-dropdown-simple a:hover { background: #f8fafc; color: #1f6aa5; }
+.nav-dropdown-simple li:last-child { border-bottom: none; }
+.topbar-actions { display: flex; gap: 10px; align-items: center; }
+.topbar-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  cursor: pointer; border: none; font-family: inherit; transition: all .3s;
+}
+.topbar-btn.outline {
+  background: #fff; color: #1a3347; border: 1px solid #e2e8f0;
+}
+.topbar-btn.outline:hover { background: #f1f5f9; }
+.user-avatar { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
+.avatar-circle {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #eff6ff; color: #1f6aa5;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+
+/* ===== 告警横幅 ===== */
+.alert-banner {
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border: 1px solid #fecaca;
+  border-radius: 12px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 auto 16px; max-width: 1200px; cursor: pointer;
+}
+.alert-icon { font-size: 24px; }
+.alert-text { flex: 1; font-weight: 500; color: #991b1b; }
+.alert-link { color: #dc2626; text-decoration: underline; }
+.alert-close { font-size: 20px; color: #9ca3af; cursor: pointer; }
+
+/* ===== 统计卡片 ===== */
+.metrics-section { padding-top: 16px; }
+.section-header { text-align: center; margin-bottom: 32px; }
+.section-title { font-size: clamp(24px, 3vw, 32px); font-weight: 700; margin-bottom: 8px; }
+.section-desc { font-size: 14px; color: #7b95a8; }
+.metrics-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+}
+.metric-card {
+  background: #fff; border-radius: 14px;
+  padding: 24px; border: 1px solid #f1f5f9;
+  transition: all .4s; display: flex; align-items: center; gap: 16px;
+}
+.metric-icon-wrap {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: #f0fdf4; display: flex; align-items: center; justify-content: center; font-size: 24px;
+  flex-shrink: 0;
+}
+.metric-icon-wrap.blue { background: #eff6ff; }
+.metric-icon-wrap.green { background: #f0fdf4; }
+.metric-icon-wrap.purple { background: #f5f3ff; }
+.metric-content { flex: 1; }
+.metric-num { font-size: 28px; font-weight: 800; color: #1a3347; }
+.metric-label { font-size: 13px; color: #64748b; }
+.metric-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
+/* ===== 趋势图表 ===== */
+.chart-card {
+  background: #fff; border-radius: 14px;
+  padding: 24px; border: 1px solid #f1f5f9;
+}
+.chart-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
+}
+.chart-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.chart-sub { font-size: 12px; color: #94a3b8; }
+.chart-btn {
+  padding: 8px 16px; border-radius: 8px;
+  border: 1px solid #e2e8f0; background: #fff; color: #1f6aa5;
+  font-size: 12px; font-weight: 500; cursor: pointer; transition: all .2s;
+}
+.chart-btn:hover { background: #eff6ff; }
+.chart-wrap { position: relative; }
+.trend-chart { width: 100%; height: 160px; display: block; }
+.axis-label { font-size: 11px; font-weight: 500; color: #94a3b8; }
+
+/* ===== Tab 导航 ===== */
+.tabs-container {
+  background: #fff; border-radius: 16px;
+  border: 1px solid #f1f5f9; overflow: hidden;
+}
+.tabs-header {
+  display: flex; overflow-x: auto;
+  border-bottom: 1px solid #f1f5f9; background: #fafbfc;
+}
+.tab-btn {
+  flex: 1; min-width: 60px; padding: 14px 16px;
+  background: transparent; border: none; cursor: pointer;
+  font-size: 13px; font-weight: 500; color: #64748b;
+  transition: all .3s; border-bottom: 2px solid transparent;
+  display: flex; align-items: center; gap: 6px; justify-content: center;
+}
+.tab-btn:hover { color: #1f6aa5; background: #f8fafc; }
+.tab-btn.active {
+  color: #1f6aa5; border-bottom-color: #1f6aa5;
+  background: #fff;
+}
+.tab-icon { font-size: 16px; }
+.tab-content { padding: 20px; }
+
+/* ===== 表格 ===== */
+.panel-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+}
+.search-row { display: flex; gap: 10px; align-items: center; flex: 1; min-width: 200px; }
+.search-input {
+  flex: 1; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid #e2e8f0; font-size: 13px; outline: none;
+}
+.search-input:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,.06); }
+.search-btn {
+  padding: 8px 16px; border-radius: 8px;
+  background: #1f6aa5; color: #fff; border: none; cursor: pointer; font-size: 13px; font-weight: 500;
+}
+.btn-primary {
+  padding: 10px 20px; border-radius: 8px;
+  background: #1f6aa5; color: #fff; border: none; cursor: pointer; font-size: 13px; font-weight: 500;
+}
+.btn-primary:hover { background: #174d7a; }
+.btn-outline {
+  padding: 8px 16px; border-radius: 8px;
+  border: 1px solid #e2e8f0; background: #fff; color: #64748b; cursor: pointer; font-size: 13px;
+}
+.btn-outline:hover { border-color: #93c5fd; color: #1f6aa5; }
+.table-wrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th {
+  text-align: left; padding: 10px 12px;
+  color: #64748b; font-weight: 600; border-bottom: 1px solid #f1f5f9;
+}
+.table td {
+  padding: 10px 12px; border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+.mono { font-family: ui-monospace, monospace; }
+.empty { padding: 32px; text-align: center; color: #94a3b8; font-size: 14px; }
+
+/* ===== 状态标签 ===== */
+.status-tag {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 500;
+}
+.status-tag.pending { background: #fef3c7; color: #d97706; }
+.status-tag.doing { background: #dbeafe; color: #2563eb; }
+.status-tag.done { background: #d1fae5; color: #059669; }
+.status-tag.danger { background: #fee2e2; color: #dc2626; }
+.status-tag.online { background: #d1fae5; color: #059669; }
+.status-tag.offline { background: #f1f5f9; color: #94a3b8; }
+
+/* ===== 操作按钮 ===== */
+.row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn-detail {
+  padding: 4px 12px; border-radius: 6px;
+  border: 1px solid #e2e8f0; background: #fff; cursor: pointer; font-size: 12px; color: #64748b;
+}
+.btn-detail:hover { border-color: #93c5fd; color: #1f6aa5; }
+.btn-blue {
+  padding: 4px 12px; border-radius: 6px;
+  background: #1f6aa5; color: #fff; border: none; cursor: pointer; font-size: 12px;
+}
+.btn-green {
+  padding: 4px 12px; border-radius: 6px;
+  background: #059669; color: #fff; border: none; cursor: pointer; font-size: 12px;
+}
+.btn-red {
+  padding: 4px 12px; border-radius: 6px;
+  background: #dc2626; color: #fff; border: none; cursor: pointer; font-size: 12px;
+}
+
+/* ===== 排班 ===== */
+.schedule-controls { display: flex; align-items: center; gap: 12px; }
+.schedule-date { font-weight: 500; font-size: 14px; }
+.schedule-grid {
+  border: 1px solid #f1f5f9; border-radius: 10px; overflow: hidden;
+}
+.schedule-header {
+  display: grid; grid-template-columns: 80px repeat(7, 1fr);
+  background: #f8fafc; padding: 8px; font-weight: 600; font-size: 13px;
+}
+.schedule-day { text-align: center; }
+.schedule-row {
+  display: grid; grid-template-columns: 80px repeat(7, 1fr);
+  border-top: 1px solid #f1f5f9;
+}
+.schedule-time { padding: 8px; font-weight: 500; color: #64748b; font-size: 13px; }
+.schedule-cell { padding: 4px; border-left: 1px solid #f1f5f9; min-height: 50px; }
+.shift-item {
+  padding: 4px 8px; border-radius: 4px; margin-bottom: 2px;
+  font-size: 12px; display: flex; justify-content: space-between; align-items: center;
+}
+.shift-item.morning { background: #eff6ff; }
+.shift-item.afternoon { background: #fef3c7; }
+.shift-item.night { background: #ecfdf5; }
+.shift-name { font-weight: 500; }
+.shift-type { font-size: 10px; color: #94a3b8; }
+.shift-delete { border: 0; background: transparent; color: #ef4444; cursor: pointer; }
+.schedule-legend { display: flex; gap: 16px; margin-top: 12px; font-size: 13px; }
+.schedule-legend .dot {
+  display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 4px;
+}
+.schedule-legend .dot.morning { background: #eff6ff; }
+.schedule-legend .dot.afternoon { background: #fef3c7; }
+.schedule-legend .dot.night { background: #ecfdf5; }
+
+/* ===== 服务评价 ===== */
+.evaluation-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;
+}
+.stat-item {
+  background: #f8fafc; border-radius: 10px; padding: 16px; text-align: center;
+}
+.stat-num { font-size: 24px; font-weight: 700; color: #1f6aa5; }
+.stat-label { font-size: 12px; color: #64748b; margin-top: 4px; }
+.rating { display: flex; align-items: center; gap: 4px; }
+.stars { color: #f59e0b; }
+.rating-num { font-weight: 500; }
+
+/* ===== 活动 ===== */
+.activities-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;
+}
+.activity-card {
+  background: #fff; border-radius: 12px;
+  padding: 16px; border: 1px solid #f1f5f9;
+}
+.activity-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.activity-title { font-weight: 600; font-size: 15px; }
+.activity-status {
+  padding: 2px 10px; border-radius: 999px; font-size: 12px;
+}
+.activity-status.upcoming { background: #eff6ff; color: #1f6aa5; }
+.activity-status.ongoing { background: #fef3c7; color: #d97706; }
+.activity-status.ended { background: #d1fae5; color: #059669; }
+.activity-info .info-item { font-size: 13px; color: #64748b; margin-bottom: 4px; }
+.activity-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+
+/* ===== 收费 ===== */
+.finance-summary {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;
+}
+.summary-item {
+  background: #f8fafc; border-radius: 10px; padding: 16px; text-align: center;
+}
+.summary-num { font-size: 24px; font-weight: 700; color: #1f6aa5; }
+.summary-label { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+/* ===== 通知 ===== */
+.notification-list { display: grid; gap: 12px; }
+.notification-card {
+  background: #fff; border-radius: 12px;
+  padding: 16px; border: 1px solid #f1f5f9;
+}
+.notification-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.notification-title { font-weight: 600; font-size: 15px; }
+.notification-status {
+  padding: 2px 10px; border-radius: 999px; font-size: 12px;
+}
+.notification-status.published { background: #d1fae5; color: #059669; }
+.notification-status.draft { background: #fef3c7; color: #d97706; }
+.notification-status.expired { background: #fee2e2; color: #dc2626; }
+.notification-content { color: #64748b; font-size: 14px; margin-bottom: 6px; }
+.notification-meta { display: flex; gap: 16px; font-size: 12px; color: #94a3b8; }
+.notification-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+/* ===== 设备 ===== */
+.device-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;
+}
+.device-card {
+  background: #fff; border-radius: 12px;
+  padding: 16px; border: 1px solid #f1f5f9;
+}
+.device-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.device-name { font-weight: 600; font-size: 15px; }
+.device-status {
+  padding: 2px 10px; border-radius: 999px; font-size: 12px;
+}
+.device-status.online { background: #d1fae5; color: #059669; }
+.device-status.offline { background: #fee2e2; color: #dc2626; }
+.device-status.low { background: #fef3c7; color: #d97706; }
+.device-info .info-item { font-size: 13px; color: #64748b; margin-bottom: 4px; }
+.device-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+/* ===== 侧边栏 ===== */
+.side-service {
+  position: fixed; right: 16px; bottom: 50%;
+  transform: translateY(50%); z-index: 999;
+}
+.side-service ul { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.side-service-item {
+  width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; background: #fff; border: 1px solid #e2e8f0;
+  color: #64748b; cursor: pointer; transition: all .3s; position: relative;
+}
+.side-service-item:hover { background: #1f6aa5; color: #fff; border-color: #1f6aa5; }
+.side-service-popup {
+  position: absolute; right: 56px; top: 50%; transform: translateY(-50%);
+  background: #1a2332; color: #fff; font-size: 11px; padding: 6px 12px;
+  border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none;
+  transition: opacity .3s;
+}
+.side-service-item:hover .side-service-popup { opacity: 1; }
+.side-service-item.backtop { opacity: 0; visibility: hidden; transition: all .3s; }
+.side-service-item.backtop.visible { opacity: 1; visibility: visible; }
+
+/* ===== 助手弹窗 ===== */
+.assistant-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  backdrop-filter: blur(4px); z-index: 2000;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.assistant-modal {
+  background: #fff; border-radius: 20px; width: 100%; max-width: 460px;
+  max-height: 85vh; display: flex; flex-direction: column;
+  box-shadow: 0 30px 60px rgba(0,0,0,.2);
+}
+.assistant-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px; border-bottom: 1px solid #f1f5f9;
+}
+.assistant-modal-title { display: flex; align-items: center; gap: 10px; }
+.assistant-modal-title h3 { font-size: 16px; font-weight: 700; }
+.assistant-badge { font-size: 9px; padding: 2px 7px; border-radius: 999px; background: #f5f3ff; color: #7c3aed; }
+.ai-icon-pulse {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  display: flex; align-items: center; justify-content: center; color: #4f46e5;
+}
+.assistant-close {
+  width: 34px; height: 34px; border-radius: 8px;
+  border: 1px solid #e2e8f0; background: #fff; color: #94a3b8; cursor: pointer;
+}
+.assistant-messages { flex: 1; max-height: 280px; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.assistant-msg { display: flex; }
+.assistant-msg.user { justify-content: flex-end; }
+.assistant-bubble {
+  max-width: 85%; padding: 8px 12px; border-radius: 12px;
+  font-size: 13px; line-height: 1.5;
+}
+.user .assistant-bubble { background: #1f6aa5; color: #fff; border-bottom-right-radius: 4px; }
+.assistant .assistant-bubble { background: #f8fafc; border: 1px solid #e2e8f0; border-bottom-left-radius: 4px; }
+.assistant-quick { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 10px; }
+.assistant-chip {
+  font-size: 11px; padding: 5px 10px; border-radius: 999px;
+  border: 1px solid #ddd6fe; background: #f5f3ff; color: #7c3aed; cursor: pointer;
+}
+.assistant-compose { display: flex; gap: 8px; padding: 10px 16px 16px; }
+.assistant-compose input {
+  flex: 1; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid #e2e8f0; font-size: 13px; outline: none;
+}
+.assistant-compose input:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,.06); }
+.assistant-compose button {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: #7c3aed; border: none; color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.loading-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+  animation: spin .6s linear infinite; display: block;
+}
+
+/* ===== 弹窗 ===== */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  backdrop-filter: blur(4px); z-index: 2000;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-card {
+  background: #fff; border-radius: 16px; padding: 24px;
+  width: 500px; max-width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.15);
+}
+.modal-card.large { width: 800px; }
+.modal-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.modal-title { font-size: 18px; font-weight: 700; }
+.modal-close { border: 0; background: transparent; font-size: 24px; color: #9ca3af; cursor: pointer; }
+.modal-body { padding: 4px 0; }
+.modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+.btn-confirm { padding: 8px 24px; border-radius: 8px; background: #1f6aa5; color: #fff; border: none; cursor: pointer; }
+
+/* ===== 详情网格 ===== */
+.detail-grid { display: grid; gap: 10px; }
+.d-item { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+.d-item:last-child { border-bottom: none; }
+.d-k { width: 100px; font-weight: 500; color: #64748b; }
+.d-v { flex: 1; font-weight: 500; }
+
+/* ===== 报表 ===== */
+.report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.report-card { border: 1px solid #f1f5f9; border-radius: 12px; padding: 16px; }
+.report-card h4 { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
+.report-chart-placeholder { height: 160px; display: flex; align-items: flex-end; justify-content: center; gap: 2px; }
+.bar-chart { display: flex; align-items: flex-end; gap: 2px; height: 100%; width: 100%; }
+.bar-item { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+.bar { width: 80%; background: #3b82f6; border-radius: 2px 2px 0 0; }
+.bar-label { font-size: 9px; color: #94a3b8; margin-top: 4px; }
+.pie-chart { width: 120px; height: 120px; margin: 0 auto; border-radius: 50%; background: conic-gradient(#67c23a 0% 72%, #3b82f6 72% 92%, #e6a23c 92% 100%); }
+.legend { display: flex; justify-content: center; gap: 16px; margin-top: 12px; font-size: 13px; }
+.legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; }
+.legend .dot.green { background: #67c23a; }
+.legend .dot.blue { background: #3b82f6; }
+.legend .dot.orange { background: #e6a23c; }
+.performance-list { display: flex; flex-direction: column; gap: 6px; }
+.perf-item { display: flex; align-items: center; gap: 12px; }
+.perf-name { width: 80px; font-weight: 500; }
+.perf-score { width: 60px; font-weight: 700; color: #3b82f6; }
+.perf-bar { flex: 1; height: 6px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+.perf-fill { height: 100%; background: #3b82f6; border-radius: 4px; }
+.modal-cta { margin-top: 16px; display: flex; justify-content: center; }
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed; left: 50%; bottom: 80px;
+  transform: translateX(-50%);
+  width: 90%; max-width: 420px;
+  background: #fff; border-radius: 12px; padding: 12px 16px;
+  display: flex; gap: 12px; align-items: center;
+  z-index: 3000; box-shadow: 0 8px 30px rgba(0,0,0,.12);
+  border: 1px solid #f1f5f9;
+}
+.toast-left { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; background: #d1fae5; color: #059669; }
+.toast-right { flex: 1; }
+.toast-title { font-weight: 600; }
+.toast-desc { margin-top: 4px; font-size: 13px; color: #64748b; }
+.toast-close { border: 0; background: transparent; font-size: 18px; color: #9ca3af; cursor: pointer; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== 响应式 ===== */
+@media (max-width: 1199px) {
+  .nav-desktop { display: none; }
+  .side-service { right: 8px; }
+}
+@media (max-width: 1023px) {
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+  .report-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .metrics-grid { grid-template-columns: 1fr; }
+  .activities-grid { grid-template-columns: 1fr; }
+  .device-grid { grid-template-columns: 1fr; }
+  .evaluation-stats { grid-template-columns: 1fr; }
+  .finance-summary { grid-template-columns: 1fr; }
+  .tabs-header { flex-wrap: nowrap; }
+  .tab-btn { font-size: 12px; padding: 10px 12px; }
+}
+</style>

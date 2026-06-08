@@ -1,0 +1,81 @@
+    <!-- 亲情互动 -->
+    <div v-if="showFamilyModal" class="modal-overlay" role="dialog" aria-modal="true">
+      <div class="modal-card family-modal">
+        <div class="modal-top">
+          <div class="modal-title">亲情互动 · 与子女连线</div>
+          <button class="modal-close" @click="closeFamilyModal" aria-label="关闭">×</button>
+        </div>
+        <div class="family-tabs">
+          <button class="tab" :class="{ active: familyTab === 'chat' }" @click="familyTab = 'chat'">聊天记录</button>
+          <button class="tab" :class="{ active: familyTab === 'album' }" @click="familyTab = 'album'">家庭相册</button>
+          <button class="tab" :class="{ active: familyTab === 'video' }" @click="familyTab = 'video'">视频通话</button>
+        </div>
+        <div class="family-body">
+          <div v-if="familyTab === 'chat'" class="chat-wrap">
+            <div class="chat-list">
+              <div v-for="m in chatMessages" :key="m.id" class="chat-item" :class="{ mine: m.mine }">
+                <div class="chat-bubble">{{ m.text }}</div>
+                <div class="chat-meta">{{ m.meta }}</div>
+              </div>
+            </div>
+            <div class="chat-input-row">
+              <input v-model="familyChatInput" class="chat-input" placeholder="输入文字/语音..." />
+              <button class="chat-send" @click="sendFamilyMessage">发送</button>
+            </div>
+          </div>
+          <div v-else-if="familyTab === 'album'" class="album-wrap">
+            <div class="album-tools">
+              <button class="video-action" :disabled="albumUploading" @click="triggerAlbumUpload">
+                {{ albumUploading ? "上传中..." : "上传照片" }}
+              </button>
+              <input ref="albumInputRef" type="file" accept="image/*" style="display: none" @change="onAlbumFileChange" />
+              <div class="album-desc">可上传家庭合照，方便老人端回看</div>
+            </div>
+            <div v-if="albumItems.length === 0" class="album-empty">暂无照片，请先上传</div>
+            <div v-else class="album-grid">
+              <div v-for="item in albumItems" :key="item.id" class="album-item">
+                <img class="album-photo" :src="item.url" :alt="item.name" @click="albumPreview = item" />
+                <div class="album-item-name">{{ item.name }}</div>
+                <div class="album-item-time">{{ item.createdAt }}</div>
+                <button class="album-del-btn" @click="removeAlbumItem(item.id)">删除</button>
+              </div>
+            </div>
+          </div>
+          <div v-else class="video-wrap">
+            <div class="video-call-actions">
+              <button class="video-action" :disabled="videoState.status === 'dialing' || videoState.status === 'connected'" @click="startVideoCall">
+                {{ videoState.status === "dialing" ? "呼叫中..." : videoState.status === "connected" ? "通话进行中" : "发起视频通话" }}
+              </button>
+              <button class="video-action ghost" :disabled="videoState.status !== 'connected'" @click="endVideoCall">挂断</button>
+            </div>
+            <div class="video-call-card" :class="{ connected: videoState.status === 'connected' }">
+              <div class="video-title">老人端画面（模拟）</div>
+              <div class="video-avatar">{{ elderName.slice(0, 1) }}</div>
+              <div class="video-status">{{ videoStatusText }} · {{ videoDurationText }}</div>
+              <div class="video-local" :class="{ off: !videoState.cameraOn }">
+                {{ videoState.cameraOn ? "家属端画面" : "家属摄像头关闭" }}
+              </div>
+            </div>
+            <div class="video-controls">
+              <button class="video-ctl" :disabled="videoState.status !== 'connected'" @click="videoState.muted = !videoState.muted">{{ videoState.muted ? "取消静音" : "静音" }}</button>
+              <button class="video-ctl" :disabled="videoState.status !== 'connected'" @click="videoState.cameraOn = !videoState.cameraOn">{{ videoState.cameraOn ? "关闭摄像头" : "开启摄像头" }}</button>
+              <button class="video-ctl" :disabled="videoState.status !== 'connected'" @click="videoState.speakerOn = !videoState.speakerOn">{{ videoState.speakerOn ? "免提开" : "免提关" }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="albumPreview" class="modal-overlay" role="dialog" aria-modal="true">
+      <div class="modal-card family-modal">
+        <div class="modal-top">
+          <div class="modal-title">{{ albumPreview.name }}</div>
+          <button class="modal-close" @click="albumPreview = null" aria-label="关闭">×</button>
+        </div>
+        <div class="family-body">
+          <img class="album-preview-img" :src="albumPreview.url" :alt="albumPreview.name" />
+        </div>
+      </div>
+    </div>
+
+    <PortalHomeModals ref="portalModals" @refresh="loadPortalContent" @toast="(m: string) => showToastMessage('提示', m)" />

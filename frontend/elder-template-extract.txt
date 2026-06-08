@@ -1,0 +1,2638 @@
+<user_query>
+<template>
+  <div class="app-container">
+    <!-- ===== 底部导航 ===== -->
+    <div class="bottom-nav">
+      <div class="nav-item" :class="{ active: currentTab === 'home' }" @click="currentTab = 'home'">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">首页</span>
+      </div>
+      <div class="nav-item" :class="{ active: currentTab === 'health' }" @click="currentTab = 'health'">
+        <span class="nav-icon">❤️</span>
+        <span class="nav-label">健康</span>
+      </div>
+      <div class="nav-item" :class="{ active: currentTab === 'mine' }" @click="currentTab = 'mine'">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">我的</span>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ===== 首页 TAB ===== -->
+    <!-- ============================================================ -->
+    <div v-show="currentTab === 'home'" class="home-page">
+      <div class="home-header">
+        <div class="search-bar" @click="focusSearch">
+          <span class="search-icon">🔍</span>
+          <input
+              v-model="searchKeyword"
+              class="search-input"
+              placeholder="搜索服务或功能"
+              @focus="showSearchResults = true"
+              @blur="hideSearchResults"
+              @input="onSearchInput"
+          />
+        </div>
+        <div class="header-right">
+          <div class="ai-assistant" @click="toggleAiChat" title="智能助手">
+            <span class="ai-icon">🤖</span>
+          </div>
+          <span class="avatar-mini">👤</span>
+        </div>
+      </div>
+
+      <!-- 搜索结果浮层 -->
+      <div v-if="showSearchResults && searchResults.length > 0" class="search-results-dropdown">
+        <div v-for="result in searchResults" :key="result.id" class="search-result-item" @click="onSearchResultClick(result)">
+          <span class="result-icon">{{ result.icon }}</span>
+          <span class="result-text">{{ result.name }}</span>
+        </div>
+      </div>
+      <div v-else-if="showSearchResults && searchKeyword && searchResults.length === 0" class="search-results-dropdown">
+        <div class="no-result">未找到相关服务</div>
+      </div>
+
+      <!-- 轮播图 -->
+      <div class="banner-carousel">
+        <img src="/images/banner-home.png" alt="智慧养老 · 银发智盾" class="banner-img" />
+        <div class="carousel-dots">
+          <span class="dot active"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+      </div>
+
+      <!-- SOS 紧急呼叫按钮 -->
+      <div class="sos-container">
+        <button class="sos-big-btn" @click="onSOS">
+          <div class="sos-icon">🆘</div>
+          <div class="sos-text">紧急呼叫</div>
+        </button>
+      </div>
+
+      <!-- 功能宫格 -->
+      <div class="grid-container">
+        <div class="grid-row-3col">
+          <div class="grid-item" @click="onServiceOrder">
+            <div class="grid-icon blue-bg">📅</div>
+            <span class="grid-label">服务预约</span>
+          </div>
+          <div class="grid-item" @click="onHealthReport">
+            <div class="grid-icon green-bg">📊</div>
+            <span class="grid-label">健康上报</span>
+          </div>
+          <div class="grid-item" @click="onFamily">
+            <div class="grid-icon pink-bg">💬</div>
+            <span class="grid-label">亲情互动</span>
+          </div>
+          <div class="grid-item" @click="onFamily">
+            <div class="grid-icon purple-bg">🎨</div>
+            <span class="grid-label">文娱活动</span>
+          </div>
+          <div class="grid-item" @click="onHealthReport">
+            <div class="grid-icon orange-bg">📚</div>
+            <span class="grid-label">学习赋能</span>
+          </div>
+          <div class="grid-item" @click="onHealthReport">
+            <div class="grid-icon blue-light-bg">📰</div>
+            <span class="grid-label">新闻资讯</span>
+          </div>
+          <div class="grid-item" @click="onReportLocation">
+            <div class="grid-icon red-bg">📍</div>
+            <span class="grid-label">上报位置</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice-bar">
+        <div class="notice-left">
+          <span class="notice-icon">📢</span>
+          <span class="notice-text">系统通知</span>
+        </div>
+        <div class="notice-right">
+          <span class="notice-count">0条未读</span>
+          <span class="notice-arrow">›</span>
+        </div>
+      </div>
+
+      <div class="hot-section">
+        <div class="hot-title">热销服务</div>
+        <div class="hot-grid">
+          <div class="hot-item" @click="onServiceOrder">
+            <div class="hot-icon">🏥</div>
+            <div class="hot-name">健康体检</div>
+          </div>
+          <div class="hot-item" @click="onServiceOrder">
+            <div class="hot-icon">🧹</div>
+            <div class="hot-name">家政保洁</div>
+          </div>
+          <div class="hot-item" @click="onServiceOrder">
+            <div class="hot-icon">🍽️</div>
+            <div class="hot-name">助餐服务</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ===== 健康 TAB ===== -->
+    <!-- ============================================================ -->
+    <div v-show="currentTab === 'health'" class="health-page">
+      <div class="health-header">
+        <div class="health-title">健康数据</div>
+        <div class="health-avatar-wrapper">
+          <div class="health-avatar-ring">
+            <div class="health-avatar-inner">
+              <span class="avatar-icon">👤</span>
+            </div>
+          </div>
+        </div>
+        <div class="health-name">{{ elderName }}</div>
+
+        <div class="health-actions">
+          <div class="health-action-btn" @click="onHealthReport">
+            <span class="icon">📋</span> 健康档案
+          </div>
+          <div class="health-action-btn" @click="onSOS">
+            <span class="icon">🔔</span> 健康告警
+          </div>
+          <div class="health-action-btn" @click="onFamily">
+            <span class="icon">💊</span> 吃药提醒
+          </div>
+        </div>
+      </div>
+
+      <div class="health-cards">
+        <div class="health-card">
+          <div class="card-label">体重 KG</div>
+          <div class="card-value">{{ vitalsForm.weight || '--' }}</div>
+          <div class="card-range">标准 60-71kg</div>
+        </div>
+        <div class="health-card">
+          <div class="card-label">身高 CM</div>
+          <div class="card-value">{{ vitalsForm.height || '--' }}</div>
+          <div class="card-range">身均 167.1cm</div>
+        </div>
+        <div class="health-card">
+          <div class="card-label">BMI</div>
+          <div class="card-value">{{ vitalsForm.bmi || '--' }}</div>
+          <div class="card-range">正常 18.5-23.9</div>
+        </div>
+        <div class="health-card">
+          <div class="card-label">体温 ℃</div>
+          <div class="card-value">{{ vitalsForm.temperature || '--' }}</div>
+          <div class="card-range">正常 36.3-37.2</div>
+        </div>
+      </div>
+
+      <!-- 健康周期报告 -->
+      <section class="card chart-card">
+        <div class="section-head">
+          <div class="section-title">健康周期报告（近7天心率趋势）</div>
+        </div>
+        <div class="chart-wrap">
+          <svg width="100%" height="160" viewBox="0 0 360 160" role="img" aria-label="心率趋势图">
+            <defs>
+              <linearGradient id="areaFill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#2196F3" stop-opacity="0.35" />
+                <stop offset="100%" stop-color="#2196F3" stop-opacity="0.02" />
+              </linearGradient>
+            </defs>
+            <g stroke="rgba(0,0,0,0.08)" stroke-width="1">
+              <line x1="40" y1="20" x2="340" y2="20" />
+              <line x1="40" y1="55" x2="340" y2="55" />
+              <line x1="40" y1="90" x2="340" y2="90" />
+              <line x1="40" y1="125" x2="340" y2="125" />
+            </g>
+            <g fill="rgba(0,0,0,0.55)" font-size="12" font-weight="700">
+              <text x="10" y="24">100</text>
+              <text x="10" y="59">60</text>
+              <text x="10" y="94">20</text>
+            </g>
+            <path d="M40,82 L85,78 L130,77 L175,76 L220,74 L265,73 L310,72 L340,72 L340,140 L40,140 Z" fill="url(#areaFill)" />
+            <polyline fill="none" stroke="#2196F3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="40,82 85,78 130,77 175,76 220,74 265,73 310,72" />
+            <g fill="#2196F3">
+              <circle cx="40" cy="82" r="4" />
+              <circle cx="85" cy="78" r="4" />
+              <circle cx="130" cy="77" r="4" />
+              <circle cx="175" cy="76" r="4" />
+              <circle cx="220" cy="74" r="4" />
+              <circle cx="265" cy="73" r="4" />
+              <circle cx="310" cy="72" r="4" />
+            </g>
+            <g fill="rgba(0,0,0,0.55)" font-size="12" font-weight="700">
+              <text x="52" y="148">03/23</text>
+              <text x="108" y="148">03/25</text>
+              <text x="165" y="148">03/27</text>
+              <text x="232" y="148">03/31</text>
+              <text x="295" y="148">今日</text>
+            </g>
+          </svg>
+        </div>
+        <div class="chart-cta">
+          <button class="cta-btn" @click="onTrendReport">生成健康使用报告</button>
+        </div>
+      </section>
+
+      <!-- 安全预警 -->
+      <section class="card safety-card">
+        <div class="section-head">
+          <div class="section-title">安全预警 & 关怀提醒</div>
+        </div>
+        <div class="warning-row">
+          <div class="warning-badge" aria-hidden="true">!</div>
+          <div class="warning-text">
+            <div class="warning-title">跌倒预警</div>
+            <div class="warning-detail">近期心率/血压波动较大，可能存在跌倒风险。当前网络：{{ networkLabel }}。</div>
+          </div>
+        </div>
+        <div class="contact-row">
+          <div class="contact-block">
+            <div class="contact-label">紧急联系人</div>
+            <div class="contact-value">{{ emergencyContact }}</div>
+          </div>
+          <button class="danger-mini" @click="onSOS">一键呼救</button>
+        </div>
+        <div class="safety-actions">
+          <button class="danger-btn" @click="onCallFamily">一键联系家属</button>
+          <button class="ok-btn" @click="onSafetyGuide">查看处置指南</button>
+        </div>
+      </section>
+
+      <div class="health-quick-actions">
+        <div class="quick-icon-item" @click="onHealthReport">
+          <div class="quick-icon-circle purple">📋</div>
+          <span class="quick-icon-label">一体机绑定</span>
+        </div>
+        <div class="quick-icon-item" @click="onFamily">
+          <div class="quick-icon-circle blue">🏥</div>
+          <span class="quick-icon-label">找医院</span>
+        </div>
+        <div class="quick-icon-item" @click="onFamily">
+          <div class="quick-icon-circle green">👨‍⚕️</div>
+          <span class="quick-icon-label">找医生</span>
+        </div>
+        <div class="quick-icon-item" @click="onHealthReport">
+          <div class="quick-icon-circle purple-light">📊</div>
+          <span class="quick-icon-label">健康评估</span>
+        </div>
+        <div class="quick-icon-item" @click="onSOS">
+          <div class="quick-icon-circle red">❗</div>
+          <span class="quick-icon-label">预警设置</span>
+        </div>
+      </div>
+
+      <div class="steps-section">
+        <div class="steps-header">
+          <span class="steps-title">计步</span>
+          <span class="steps-plus">+</span>
+        </div>
+        <div class="steps-content">
+          <div class="step-item">
+            <div class="step-label">前一天</div>
+            <div class="step-number">{{ stepsYesterday || '--' }}</div>
+          </div>
+          <div class="step-item">
+            <div class="step-label">今日</div>
+            <div class="step-number">{{ steps || '--' }}</div>
+          </div>
+          <div class="step-item">
+            <div class="step-label">排行榜</div>
+            <div class="step-number">{{ rank || '--' }}名</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ===== 我的 TAB（完整功能） ===== -->
+    <!-- ============================================================ -->
+    <div v-show="currentTab === 'mine'" class="mine-page">
+      <div class="mine-header">
+        <div class="mine-avatar-section">
+          <div class="mine-avatar-circle">👤</div>
+          <div class="mine-name">{{ elderName }}</div>
+        </div>
+      </div>
+
+      <div class="menu-list">
+        <!-- 个人信息 -->
+        <div class="menu-item" @click="openProfile">
+          <div class="menu-left">
+            <span class="menu-icon blue">👤</span>
+            <span class="menu-text">个人信息</span>
+          </div>
+          <span class="menu-arrow">›</span>
+        </div>
+
+        <!-- 修改密码 -->
+        <div class="menu-item" @click="openChangePassword">
+          <div class="menu-left">
+            <span class="menu-icon red">🔒</span>
+            <span class="menu-text">修改密码</span>
+          </div>
+          <span class="menu-arrow">›</span>
+        </div>
+
+        <!-- 地址管理 -->
+        <div class="menu-item" @click="openAddressManage">
+          <div class="menu-left">
+            <span class="menu-icon pink">📍</span>
+            <span class="menu-text">地址管理</span>
+          </div>
+          <span class="menu-arrow">›</span>
+        </div>
+
+        <!-- 已关联用户 -->
+        <div class="menu-item" @click="openRelatedUsers">
+          <div class="menu-left">
+            <span class="menu-icon green">👥</span>
+            <span class="menu-text">已关联用户</span>
+          </div>
+          <span class="menu-arrow">›</span>
+        </div>
+
+        <!-- 帮扶志愿者 -->
+        <div class="menu-item" @click="openVolunteer">
+          <div class="menu-left">
+            <span class="menu-icon orange">❤️</span>
+            <span class="menu-text">帮扶志愿者</span>
+          </div>
+          <span class="menu-arrow">›</span>
+        </div>
+
+        <!-- 我的管家 -->
+        <div class="menu-item" @click="openMyButler">
+          <div class="menu-left">
+            <span class="menu-icon blue-light">👤</span>
+            <span class="menu-text">我的管家</span>
+          </div>
+          <span class="menu-arrow">›</span>
+        </div>
+
+        <!-- 我的订单 -->
+        <div class="menu-item" @click="openMyOrders">
+          <div class="menu-left">
+            <span class="menu-icon red-light">📋</span>
+            <span class="menu-text">我的订单</span>
+          </div>
+          <span class="menu-arrow">›</span>
+        </div>
+
+        <!-- 会员账户 -->
+        <div class="menu-item" @click="openMemberAccount">
+          <div class="menu-left">
+            <span class="menu-icon blue">💳</span>
+            <span class="menu-text">会员账户</span>
+          </div>
+          <span class="menu-arrow">›</span>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="setting-item">
+          <div class="setting-left">
+            <span class="setting-icon red">⚠️</span>
+            <span class="setting-text">告警提示</span>
+          </div>
+          <div class="toggle-switch active" @click="toggleSetting('alert')"></div>
+        </div>
+        <div class="setting-item">
+          <div class="setting-left">
+            <span class="setting-icon blue">👤</span>
+            <span class="setting-text">完善信息</span>
+          </div>
+          <div class="toggle-switch active" @click="toggleSetting('info')"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ===== AI 助手 ===== -->
+    <!-- ============================================================ -->
+    <div v-if="showAiChat" class="ai-chat-window">
+      <div class="ai-chat-header">
+        <span class="ai-chat-title">🤖 智能助手</span>
+        <button class="ai-chat-close" @click="toggleAiChat">×</button>
+      </div>
+      <div class="ai-chat-body">
+        <div class="ai-message">您好！我是您的智能健康助手，有什么可以帮您的吗？</div>
+        <div v-for="msg in aiMessages" :key="msg.id" :class="['chat-msg', msg.role]">
+          <div class="msg-bubble">{{ msg.content }}</div>
+        </div>
+      </div>
+      <div class="ai-chat-footer">
+        <input v-model="aiInput" class="ai-input" placeholder="请输入您的问题..." @keyup.enter="sendAiMessage" />
+        <button class="ai-send-btn" @click="sendAiMessage">发送</button>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ===== 功能弹窗 ===== -->
+    <!-- ============================================================ -->
+
+    <!-- SOS 确认 -->
+    <div v-if="showSosConfirm" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-top">
+          <div class="modal-title">紧急求助</div>
+          <button class="modal-close" @click="closeSosConfirm">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-warning">
+            <div class="modal-warning-badge">!</div>
+            <div class="modal-warning-text">确认一键求助吗？系统将立即通知家属及服务机构！</div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="closeSosConfirm">取消</button>
+          <button class="btn-confirm" @click="confirmSOS">确认呼叫</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 个人信息 -->
+    <div v-if="showProfileModal" class="modal-overlay">
+      <div class="modal-card profile-modal">
+        <div class="modal-top">
+          <div class="modal-title">个人信息</div>
+          <button class="modal-close" @click="showProfileModal = false">×</button>
+        </div>
+        <div class="profile-content">
+          <div class="profile-item">
+            <span class="profile-label">姓名</span>
+            <span class="profile-value">{{ userProfile.name }}</span>
+          </div>
+          <div class="profile-item">
+            <span class="profile-label">年龄</span>
+            <span class="profile-value">{{ userProfile.age }} 岁</span>
+          </div>
+          <div class="profile-item">
+            <span class="profile-label">性别</span>
+            <span class="profile-value">{{ userProfile.gender }}</span>
+          </div>
+          <div class="profile-item">
+            <span class="profile-label">电话</span>
+            <span class="profile-value">{{ userProfile.phone }}</span>
+          </div>
+          <div class="profile-item">
+            <span class="profile-label">住址</span>
+            <span class="profile-value">{{ userProfile.address }}</span>
+          </div>
+          <div class="profile-actions">
+            <button class="btn-confirm" @click="showProfileModal = false">编辑信息</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 修改密码 -->
+    <div v-if="showChangePasswordModal" class="modal-overlay">
+      <div class="modal-card password-modal">
+        <div class="modal-top">
+          <div class="modal-title">修改密码</div>
+          <button class="modal-close" @click="showChangePasswordModal = false">×</button>
+        </div>
+        <div class="password-form">
+          <div class="form-group">
+            <label>原密码</label>
+            <input v-model="passwordForm.oldPassword" type="password" class="form-input" placeholder="请输入原密码" />
+          </div>
+          <div class="form-group">
+            <label>新密码</label>
+            <input v-model="passwordForm.newPassword" type="password" class="form-input" placeholder="请输入新密码" />
+          </div>
+          <div class="form-group">
+            <label>确认密码</label>
+            <input v-model="passwordForm.confirmPassword" type="password" class="form-input" placeholder="请再次输入新密码" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showChangePasswordModal = false">取消</button>
+          <button class="btn-confirm" @click="confirmChangePassword">确认修改</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 地址管理 -->
+    <div v-if="showAddressModal" class="modal-overlay">
+      <div class="modal-card address-modal">
+        <div class="modal-top">
+          <div class="modal-title">地址管理</div>
+          <button class="modal-close" @click="showAddressModal = false">×</button>
+        </div>
+        <div class="address-list">
+          <div v-for="addr in addressList" :key="addr.id" class="address-item">
+            <div class="addr-info">
+              <div class="addr-name">{{ addr.name }}</div>
+              <div class="addr-detail">{{ addr.address }}</div>
+              <div v-if="addr.isDefault" class="addr-default">默认</div>
+            </div>
+            <div class="addr-actions">
+              <button class="addr-edit" @click="editAddress(addr)">编辑</button>
+              <button class="addr-delete" @click="deleteAddress(addr.id)">删除</button>
+            </div>
+          </div>
+          <div v-if="addressList.length === 0" class="no-data">暂无地址</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-confirm" @click="addNewAddress">添加新地址</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 已关联用户 -->
+    <div v-if="showRelatedUsersModal" class="modal-overlay">
+      <div class="modal-card related-modal">
+        <div class="modal-top">
+          <div class="modal-title">已关联用户</div>
+          <button class="modal-close" @click="showRelatedUsersModal = false">×</button>
+        </div>
+        <div class="related-list">
+          <div v-for="user in relatedUsers" :key="user.id" class="related-item">
+            <div class="related-avatar">{{ user.name.charAt(0) }}</div>
+            <div class="related-info">
+              <div class="related-name">{{ user.name }}</div>
+              <div class="related-relation">{{ user.relation }}</div>
+              <div class="related-phone">{{ user.phone }}</div>
+            </div>
+            <div class="related-actions">
+              <button class="related-delete" @click="deleteRelatedUser(user.id)">移除</button>
+            </div>
+          </div>
+          <div v-if="relatedUsers.length === 0" class="no-data">暂无关联用户</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-confirm" @click="addRelatedUser">添加关联用户</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 帮扶志愿者 -->
+    <div v-if="showVolunteerModal" class="modal-overlay">
+      <div class="modal-card volunteer-modal">
+        <div class="modal-top">
+          <div class="modal-title">帮扶志愿者</div>
+          <button class="modal-close" @click="showVolunteerModal = false">×</button>
+        </div>
+        <div class="volunteer-content">
+          <div v-if="volunteerInfo" class="volunteer-card">
+            <div class="volunteer-avatar">{{ volunteerInfo.name.charAt(0) }}</div>
+            <div class="volunteer-detail">
+              <div class="volunteer-name">{{ volunteerInfo.name }}</div>
+              <div class="volunteer-org">{{ volunteerInfo.organization }}</div>
+              <div class="volunteer-phone">{{ volunteerInfo.phone }}</div>
+              <div class="volunteer-desc">{{ volunteerInfo.description }}</div>
+            </div>
+          </div>
+          <div v-else class="no-data">暂无帮扶志愿者</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-confirm" @click="showVolunteerModal = false">确定</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 我的管家 -->
+    <div v-if="showButlerModal" class="modal-overlay">
+      <div class="modal-card butler-modal">
+        <div class="modal-top">
+          <div class="modal-title">我的管家</div>
+          <button class="modal-close" @click="showButlerModal = false">×</button>
+        </div>
+        <div class="butler-content">
+          <div v-if="butlerInfo" class="butler-card">
+            <div class="butler-avatar">{{ butlerInfo.name.charAt(0) }}</div>
+            <div class="butler-detail">
+              <div class="butler-name">{{ butlerInfo.name }}</div>
+              <div class="butler-title">{{ butlerInfo.title }}</div>
+              <div class="butler-phone">{{ butlerInfo.phone }}</div>
+              <div class="butler-desc">{{ butlerInfo.description }}</div>
+            </div>
+            <div class="butler-actions">
+              <button class="btn-confirm" @click="callButler">呼叫管家</button>
+            </div>
+          </div>
+          <div v-else class="no-data">暂无管家信息</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 我的订单 -->
+    <div v-if="showOrdersModal" class="modal-overlay">
+      <div class="modal-card orders-modal">
+        <div class="modal-top">
+          <div class="modal-title">我的订单</div>
+          <button class="modal-close" @click="showOrdersModal = false">×</button>
+        </div>
+        <div class="order-list">
+          <div v-for="order in orderList" :key="order.id" class="order-item">
+            <div class="order-header">
+              <span class="order-id">订单号: {{ order.id }}</span>
+              <span class="order-status" :class="order.statusClass">{{ order.status }}</span>
+            </div>
+            <div class="order-body">
+              <div class="order-service">{{ order.service }}</div>
+              <div class="order-time">{{ order.time }}</div>
+              <div class="order-amount">¥ {{ order.amount }}</div>
+            </div>
+          </div>
+          <div v-if="orderList.length === 0" class="no-data">暂无订单</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-confirm" @click="showOrdersModal = false">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 会员账户 -->
+    <div v-if="showMemberModal" class="modal-overlay">
+      <div class="modal-card member-modal">
+        <div class="modal-top">
+          <div class="modal-title">会员账户</div>
+          <button class="modal-close" @click="showMemberModal = false">×</button>
+        </div>
+        <div class="member-content">
+          <div class="member-level">
+            <div class="level-badge">{{ memberInfo.level }}</div>
+            <div class="level-name">{{ memberInfo.levelName }}</div>
+          </div>
+          <div class="member-stats">
+            <div class="stat-item">
+              <div class="stat-label">余额</div>
+              <div class="stat-value">¥ {{ memberInfo.balance }}</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">积分</div>
+              <div class="stat-value">{{ memberInfo.points }} 分</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">优惠券</div>
+              <div class="stat-value">{{ memberInfo.coupons }} 张</div>
+            </div>
+          </div>
+          <div class="member-actions">
+            <button class="btn-confirm" @click="showMemberModal = false">关闭</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 健康上报弹窗 -->
+    <div v-if="showVitalsModal" class="modal-overlay">
+      <div class="modal-card vitals-modal">
+        <div class="modal-top">
+          <div class="modal-title">手动录入健康数据</div>
+          <button class="modal-close" @click="showVitalsModal = false">×</button>
+        </div>
+        <div class="vitals-form">
+          <div class="form-row">
+            <div class="form-label">心率 (bpm)</div>
+            <div class="stepper">
+              <button class="step-btn" @click="vitalsForm.hr = Math.max(0, (vitalsForm.hr || 0) - 1)">－</button>
+              <div class="step-value">{{ vitalsForm.hr || 0 }}</div>
+              <button class="step-btn" @click="vitalsForm.hr = (vitalsForm.hr || 0) + 1">＋</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-label">血压</div>
+            <div class="bp-input">
+              <input v-model.number="vitalsForm.sbp" type="number" placeholder="收缩压" />
+              <span>/</span>
+              <input v-model.number="vitalsForm.dbp" type="number" placeholder="舒张压" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-label">血氧 (%)</div>
+            <div class="stepper">
+              <button class="step-btn" @click="vitalsForm.spo2 = Math.max(0, (vitalsForm.spo2 || 0) - 1)">－</button>
+              <div class="step-value">{{ vitalsForm.spo2 || 0 }}</div>
+              <button class="step-btn" @click="vitalsForm.spo2 = (vitalsForm.spo2 || 0) + 1">＋</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-label">血糖 (mmol/L)</div>
+            <input v-model.number="vitalsForm.glucose" type="number" class="wide-input" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showVitalsModal = false">取消</button>
+          <button class="btn-confirm" @click="submitVitals">提交并同步家属</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 服务预约弹窗 -->
+    <div v-if="showServiceOrderModal" class="modal-overlay">
+      <div class="modal-card service-modal">
+        <div class="modal-top">
+          <div class="modal-title">预约养老服务</div>
+          <button class="modal-close" @click="showServiceOrderModal = false">×</button>
+        </div>
+        <div class="service-form">
+          <div class="form-row">
+            <div class="form-label">服务类型</div>
+            <select v-model="service.serviceType" class="wide-select">
+              <option value="NURSING">助餐（送餐上门）</option>
+              <option value="HOUSEKEEPING">家政保洁</option>
+              <option value="ACCOMPANY">陪诊陪护</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-label">预约时间</div>
+            <input v-model="service.appointmentTime" type="datetime-local" class="wide-input" />
+          </div>
+          <div class="form-row">
+            <div class="form-label">备注</div>
+            <input v-model="service.notes" class="wide-input" placeholder="特殊需求..." />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showServiceOrderModal = false">取消</button>
+          <button class="btn-confirm" @click="confirmServiceOrder">确认预约</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div v-if="showToast" class="toast">
+      <div class="toast-icon">{{ toastIcon }}</div>
+      <div class="toast-content">
+        <div class="toast-title">{{ toastTitle }}</div>
+        <div class="toast-desc">{{ toastDesc }}</div>
+      </div>
+      <button class="toast-close" @click="showToast = false">×</button>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { useRouter } from "vue-router";
+import { reportElderLocation } from "../../api/location";
+
+const router = useRouter();
+const currentTab = ref('home');
+
+const elderName = computed(() => localStorage.getItem("elder.userName") ?? "长者");
+const elderId = computed(() => localStorage.getItem("elder.id") ?? "");
+
+// ===== 搜索功能 =====
+const searchKeyword = ref('');
+const showSearchResults = ref(false);
+const searchResults = ref<Array<{ id: string; name: string; icon: string; action: string }>>([]);
+
+const allFunctions = [
+  { id: '1', name: '服务预约', icon: '📅', action: 'service' },
+  { id: '2', name: '健康上报', icon: '📊', action: 'health' },
+  { id: '3', name: '亲情互动', icon: '💬', action: 'family' },
+  { id: '4', name: '文娱活动', icon: '🎨', action: 'family' },
+  { id: '5', name: '学习赋能', icon: '📚', action: 'health' },
+  { id: '6', name: '新闻资讯', icon: '📰', action: 'health' },
+  { id: '7', name: '上报位置', icon: '📍', action: 'location' },
+  { id: '8', name: '健康档案', icon: '📋', action: 'health' },
+  { id: '9', name: '吃药提醒', icon: '💊', action: 'family' },
+  { id: '10', name: '健康评估', icon: '📊', action: 'health' },
+  { id: '11', name: '个人信息', icon: '👤', action: 'profile' },
+  { id: '12', name: '修改密码', icon: '🔒', action: 'password' },
+  { id: '13', name: '地址管理', icon: '📍', action: 'address' },
+  { id: '14', name: '我的订单', icon: '📋', action: 'orders' },
+];
+
+function onSearchInput() {
+  const keyword = searchKeyword.value.trim().toLowerCase();
+  if (!keyword) {
+    searchResults.value = [];
+    return;
+  }
+  searchResults.value = allFunctions.filter(item =>
+      item.name.includes(keyword) || item.name.toLowerCase().includes(keyword)
+  );
+}
+
+function focusSearch() {
+  showSearchResults.value = true;
+  onSearchInput();
+}
+
+function hideSearchResults() {
+  setTimeout(() => {
+    showSearchResults.value = false;
+  }, 200);
+}
+
+function onSearchResultClick(result: any) {
+  showSearchResults.value = false;
+  searchKeyword.value = '';
+  switch(result.action) {
+    case 'service': onServiceOrder(); break;
+    case 'health': onHealthReport(); break;
+    case 'family': onFamily(); break;
+    case 'location': onReportLocation(); break;
+    case 'profile': openProfile(); break;
+    case 'password': openChangePassword(); break;
+    case 'address': openAddressManage(); break;
+    case 'orders': openMyOrders(); break;
+  }
+}
+
+// ===== AI 助手 =====
+const showAiChat = ref(false);
+const aiInput = ref('');
+const aiMessages = ref<Array<{ id: number; role: string; content: string }>>([]);
+
+function toggleAiChat() {
+  showAiChat.value = !showAiChat.value;
+}
+
+function sendAiMessage() {
+  const text = aiInput.value.trim();
+  if (!text) return;
+
+  aiMessages.value.push({ id: Date.now(), role: 'user', content: text });
+  aiInput.value = '';
+
+  setTimeout(() => {
+    aiMessages.value.push({
+      id: Date.now() + 1,
+      role: 'ai',
+      content: `收到您的提问："${text}"。我正在为您查询相关信息，请稍候...`
+    });
+  }, 800);
+}
+
+// ===== 健康数据 =====
+const vitalsForm = reactive({
+  hr: 78,
+  sbp: 125,
+  dbp: 80,
+  spo2: 96,
+  glucose: 5.6,
+  weight: 65,
+  height: 167,
+  bmi: 23.3,
+  temperature: 36.5
+});
+
+const steps = ref(3534);
+const stepsYesterday = ref(3200);
+const rank = ref(15);
+
+const networkLabel = computed(() => navigator.onLine ? "在线" : "离线");
+const emergencyContact = computed(() => "孙儿 138****9102");
+
+const showSosConfirm = ref(false);
+
+// ===== 功能模态控制 =====
+const showVitalsModal = ref(false);
+const showServiceOrderModal = ref(false);
+
+// ===== Toast 控制 =====
+const showToast = ref(false);
+const toastTitle = ref('');
+const toastDesc = ref('');
+const toastIcon = ref('✓');
+
+function showToastMessage(title: string, desc: string, icon = '✓') {
+  toastTitle.value = title;
+  toastDesc.value = desc;
+  toastIcon.value = icon;
+  showToast.value = true;
+  setTimeout(() => {
+    showToast.value = false;
+  }, 3000);
+}
+
+// ===== 基础功能 =====
+function onSOS() {
+  showSosConfirm.value = true;
+}
+
+function closeSosConfirm() {
+  showSosConfirm.value = false;
+}
+
+function confirmSOS() {
+  showSosConfirm.value = false;
+  showToastMessage('SOS 求助已触发', '已发送告警至家属及养老服务机构', '⚠️');
+}
+
+function onServiceOrder() {
+  showServiceOrderModal.value = true;
+}
+
+function onHealthReport() {
+  showVitalsModal.value = true;
+}
+
+function onFamily() {
+  showToastMessage('亲情互动', '正在连接家属端，请稍候...', '💬');
+}
+
+function onReportLocation() {
+  if (!navigator.geolocation) {
+    showToastMessage('定位失败', '当前浏览器不支持定位', '❌');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          await reportElderLocation(elderId.value, {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracyMeters: pos.coords.accuracy,
+            source: "elder_app_browser"
+          });
+          showToastMessage('位置已上报', '家属与机构端地图将显示最新坐标', '📍');
+        } catch (e) {
+          showToastMessage('上报失败', '请检查网络后重试', '❌');
+        }
+      },
+      () => showToastMessage('获取位置失败', '请在系统设置中授权定位权限', '❌'),
+      { enableHighAccuracy: true, timeout: 20000 }
+  );
+}
+
+function onTrendReport() {
+  showToastMessage('生成报告', '健康报告生成中，请稍候...', '📊');
+}
+
+function onCallFamily() {
+  showToastMessage('一键联系家属', '正在呼叫紧急联系人...', '📞');
+}
+
+function onSafetyGuide() {
+  showToastMessage('处置指南', '正在加载安全处置指南...', '📖');
+}
+
+function submitVitals() {
+  showVitalsModal.value = false;
+  showToastMessage('健康数据已提交', '数据已同步至家属端，请保持良好生活习惯', '✅');
+}
+
+function confirmServiceOrder() {
+  showServiceOrderModal.value = false;
+  showToastMessage('预约成功', '服务已确认，工作人员将尽快联系您', '✅');
+}
+
+// ===== 我的页面 - 个人信息 =====
+const showProfileModal = ref(false);
+const userProfile = reactive({
+  name: '张三',
+  age: 72,
+  gender: '男',
+  phone: '138****1234',
+  address: '北京市朝阳区幸福小区3号楼201室'
+});
+
+function openProfile() {
+  showProfileModal.value = true;
+}
+
+// ===== 我的页面 - 修改密码 =====
+const showChangePasswordModal = ref(false);
+const passwordForm = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+});
+
+function openChangePassword() {
+  passwordForm.oldPassword = '';
+  passwordForm.newPassword = '';
+  passwordForm.confirmPassword = '';
+  showChangePasswordModal.value = true;
+}
+
+function confirmChangePassword() {
+  if (!passwordForm.oldPassword) {
+    showToastMessage('提示', '请输入原密码', '⚠️');
+    return;
+  }
+  if (!passwordForm.newPassword) {
+    showToastMessage('提示', '请输入新密码', '⚠️');
+    return;
+  }
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    showToastMessage('提示', '两次输入的密码不一致', '⚠️');
+    return;
+  }
+  showChangePasswordModal.value = false;
+  showToastMessage('密码修改成功', '请使用新密码重新登录', '✅');
+}
+
+// ===== 我的页面 - 地址管理 =====
+const showAddressModal = ref(false);
+const addressList = ref([
+  { id: 1, name: '家庭住址', address: '北京市朝阳区幸福小区3号楼201室', isDefault: true },
+  { id: 2, name: '子女家', address: '北京市海淀区科技园8号楼602室', isDefault: false }
+]);
+
+function openAddressManage() {
+  showAddressModal.value = true;
+}
+
+function deleteAddress(id: number) {
+  if (confirm('确定要删除该地址吗？')) {
+    addressList.value = addressList.value.filter(addr => addr.id !== id);
+    showToastMessage('地址已删除', '地址管理已更新', '✅');
+  }
+}
+
+function editAddress(addr: any) {
+  showToastMessage('编辑地址', `正在编辑: ${addr.name}`, '📝');
+}
+
+function addNewAddress() {
+  const newAddr = prompt('请输入新地址：');
+  if (newAddr) {
+    addressList.value.push({
+      id: Date.now(),
+      name: '新地址',
+      address: newAddr,
+      isDefault: false
+    });
+    showToastMessage('地址已添加', '新地址已保存', '✅');
+  }
+}
+
+// ===== 我的页面 - 已关联用户 =====
+const showRelatedUsersModal = ref(false);
+const relatedUsers = ref([
+  { id: 1, name: '张明', relation: '儿子', phone: '139****5678' },
+  { id: 2, name: '张丽', relation: '女儿', phone: '138****9012' }
+]);
+
+function openRelatedUsers() {
+  showRelatedUsersModal.value = true;
+}
+
+function deleteRelatedUser(id: number) {
+  if (confirm('确定要移除该关联用户吗？')) {
+    relatedUsers.value = relatedUsers.value.filter(user => user.id !== id);
+    showToastMessage('已移除关联用户', '关联关系已解除', '✅');
+  }
+}
+
+function addRelatedUser() {
+  const name = prompt('请输入关联用户姓名：');
+  if (name) {
+    relatedUsers.value.push({
+      id: Date.now(),
+      name: name,
+      relation: '亲友',
+      phone: '请完善'
+    });
+    showToastMessage('关联用户已添加', '请完善用户信息', '✅');
+  }
+}
+
+// ===== 我的页面 - 帮扶志愿者 =====
+const showVolunteerModal = ref(false);
+const volunteerInfo = ref({
+  name: '李华',
+  organization: '阳光志愿者协会',
+  phone: '188****3456',
+  description: '擅长老年人心理疏导、健康咨询，每周三下午提供上门服务'
+});
+
+function openVolunteer() {
+  showVolunteerModal.value = true;
+}
+
+// ===== 我的页面 - 我的管家 =====
+const showButlerModal = ref(false);
+const butlerInfo = ref({
+  name: '王管家',
+  title: '资深养老管家',
+  phone: '177****7890',
+  description: '从事养老服务8年，擅长老年人生活照料、健康管理、活动组织'
+});
+
+function openMyButler() {
+  showButlerModal.value = true;
+}
+
+function callButler() {
+  showToastMessage('呼叫管家', '正在为您联系王管家...', '📞');
+}
+
+// ===== 我的页面 - 我的订单 =====
+const showOrdersModal = ref(false);
+const orderList = ref([
+  { id: '20250101001', service: '助餐服务（送餐上门）', time: '2025-01-01 12:00', amount: 25.00, status: '已完成', statusClass: 'completed' },
+  { id: '20250102002', service: '家政保洁（全屋清洁）', time: '2025-01-02 14:00', amount: 120.00, status: '进行中', statusClass: 'processing' },
+  { id: '20250103003', service: '陪诊陪护（医院陪同）', time: '2025-01-03 09:00', amount: 80.00, status: '待确认', statusClass: 'pending' }
+]);
+
+function openMyOrders() {
+  showOrdersModal.value = true;
+}
+
+// ===== 我的页面 - 会员账户 =====
+const showMemberModal = ref(false);
+const memberInfo = reactive({
+  level: '👑',
+  levelName: '黄金会员',
+  balance: 568.50,
+  points: 2340,
+  coupons: 3
+});
+
+function openMemberAccount() {
+  showMemberModal.value = true;
+}
+
+// ===== 设置开关 =====
+function toggleSetting(type: 'alert' | 'info') {
+  const status = type === 'alert' ? '告警提示' : '完善信息';
+  showToastMessage(`${status}已切换`, `当前状态：已开启`, '⚙️');
+}
+
+// ===== 服务预约数据 =====
+const service = reactive({
+  serviceType: "NURSING",
+  appointmentTime: "",
+  notes: ""
+});
+
+// ===== 初始化 =====
+onMounted(() => {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  service.appointmentTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours() + 1)}:${pad(now.getMinutes())}`;
+});
+</script>
+
+<style scoped>
+/* ===== 全局重置 & 白色主题 ===== */
+* { box-sizing: border-box; }
+
+.app-container {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding-bottom: 70px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #333;
+}
+
+/* ===== 底部导航 ===== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 480px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0 14px;
+  z-index: 100;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.04);
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  color: #999;
+  font-size: 11px;
+  transition: color 0.3s;
+}
+
+.nav-item.active {
+  color: #2196F3;
+}
+
+.nav-icon {
+  font-size: 22px;
+  margin-bottom: 2px;
+}
+
+/* ===== 首页 ===== */
+.home-page {
+  padding: 0 14px;
+  padding-top: 14px;
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.search-bar {
+  flex: 1;
+  background: white;
+  border: 1px solid #e8ecf0;
+  border-radius: 24px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #999;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+  cursor: pointer;
+}
+
+.search-icon { font-size: 16px; }
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #333;
+  background: transparent;
+}
+
+.search-input::placeholder {
+  color: #bbb;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-assistant {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #E3F2FD;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  border: 1px solid #BBDEFB;
+}
+
+.ai-assistant:hover {
+  background: #BBDEFB;
+}
+
+.ai-icon {
+  font-size: 20px;
+}
+
+.avatar-mini {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f0f2f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.search-results-dropdown {
+  background: white;
+  border: 1px solid #e8ecf0;
+  border-radius: 12px;
+  padding: 8px 0;
+  margin-top: -8px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  max-height: 300px;
+  overflow-y: auto;
+  position: relative;
+  z-index: 50;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.search-result-item:hover {
+  background: #f5f7fa;
+}
+
+.result-icon { font-size: 18px; }
+.result-text { font-size: 14px; color: #333; }
+
+.no-result {
+  padding: 16px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+.banner-carousel {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  height: 160px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.carousel-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s;
+}
+
+.dot.active {
+  background: #2196F3;
+  width: 18px;
+  border-radius: 3px;
+}
+
+.sos-container {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0 18px;
+}
+
+.sos-big-btn {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: #FF3D00;
+  border: none;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(255, 61, 0, 0.3);
+  transition: all 0.2s;
+  z-index: 1;
+}
+
+.sos-big-btn::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 61, 0, 0.25);
+  animation: sos-glow 2s ease-in-out infinite;
+  z-index: -1;
+}
+
+.sos-big-btn::after {
+  content: '';
+  position: absolute;
+  top: -16px;
+  left: -16px;
+  right: -16px;
+  bottom: -16px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 61, 0, 0.12);
+  animation: sos-glow 2s ease-in-out infinite 0.6s;
+  z-index: -1;
+}
+
+@keyframes sos-glow {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.3; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.sos-big-btn:active {
+  transform: scale(0.92);
+}
+
+.sos-icon { font-size: 36px; margin-bottom: 2px; }
+.sos-text { font-size: 15px; font-weight: 600; letter-spacing: 1px; }
+
+.grid-container {
+  background: white;
+  border-radius: 16px;
+  padding: 18px 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border: 1px solid #f0f2f5;
+}
+
+.grid-row-3col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 8px;
+}
+
+.grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.grid-item:active {
+  transform: scale(0.92);
+}
+
+.grid-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+
+.blue-bg { background: #E3F2FD; color: #2196F3; }
+.green-bg { background: #E8F5E9; color: #4CAF50; }
+.pink-bg { background: #FCE4EC; color: #E91E63; }
+.purple-bg { background: #F3E5F5; color: #9C27B0; }
+.orange-bg { background: #FFF3E0; color: #FF9800; }
+.blue-light-bg { background: #E8EAF6; color: #3F51B5; }
+.red-bg { background: #FFEBEE; color: #F44336; }
+
+.grid-label {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+}
+
+.notice-bar {
+  background: white;
+  border: 1px solid #f0f2f5;
+  border-radius: 14px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+.notice-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notice-icon { font-size: 20px; color: #2196F3; }
+.notice-text { font-size: 14px; color: #666; }
+
+.notice-right {
+  color: #999;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hot-section {
+  background: white;
+  border: 1px solid #f0f2f5;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+.hot-title {
+  color: #2196F3;
+  font-weight: 600;
+  font-size: 15px;
+  text-align: center;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.hot-title::before, .hot-title::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 30px;
+  height: 1px;
+  background: #f0f2f5;
+}
+
+.hot-title::before { left: 10%; }
+.hot-title::after { right: 10%; }
+
+.hot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.hot-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+  border-radius: 12px;
+  background: #f8f9fa;
+  cursor: pointer;
+}
+
+.hot-item:active {
+  background: #f0f2f5;
+}
+
+.hot-icon { font-size: 24px; margin-bottom: 4px; }
+.hot-name { font-size: 12px; color: #666; }
+
+/* ===== 健康页 ===== */
+.health-header {
+  background: linear-gradient(180deg, #E3F2FD, #f5f7fa);
+  padding: 20px 16px 30px;
+  text-align: center;
+  border-radius: 0 0 24px 24px;
+}
+
+.health-title { font-size: 18px; font-weight: 600; color: #1a3347; margin-bottom: 16px; }
+
+.health-avatar-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px solid rgba(33, 150, 243, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+  background: rgba(255,255,255,0.6);
+}
+
+.health-avatar-inner {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #f0f4f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-icon { font-size: 32px; color: #666; }
+.health-name { font-size: 16px; color: #1a3347; margin-bottom: 16px; }
+
+.health-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.health-action-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #2196F3;
+  border: 1px solid rgba(33, 150, 243, 0.15);
+  background: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}
+
+.health-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 16px 16px;
+}
+
+.health-card {
+  background: white;
+  border: 1px solid #f0f2f5;
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+.card-label { font-size: 12px; color: #999; font-weight: 500; }
+.card-value { font-size: 20px; font-weight: 600; color: #1a3347; margin: 4px 0; }
+.card-range { font-size: 11px; color: #999; }
+
+.chart-card {
+  background: white;
+  border: 1px solid #f0f2f5;
+  border-radius: 16px;
+  padding: 16px;
+  margin: 0 16px 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a3347;
+}
+
+.chart-wrap {
+  margin-bottom: 12px;
+}
+
+.chart-cta {
+  display: flex;
+  justify-content: center;
+}
+
+.cta-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: #E3F2FD;
+  color: #2196F3;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cta-btn:hover {
+  background: #BBDEFB;
+}
+
+.safety-card {
+  background: white;
+  border: 1px solid #f0f2f5;
+  border-radius: 16px;
+  padding: 16px;
+  margin: 0 16px 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+.warning-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border-radius: 12px;
+  padding: 12px;
+  background: #FFF3E0;
+  margin-bottom: 12px;
+}
+
+.warning-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #FF9800;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.warning-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #E65100;
+}
+
+.warning-detail {
+  font-size: 13px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.contact-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.contact-label { font-size: 12px; color: #999; }
+.contact-value { font-size: 15px; font-weight: 500; color: #1a3347; margin-top: 2px; }
+
+.danger-mini {
+  border: 1px solid #FF3D00;
+  background: #FFEBEE;
+  color: #FF3D00;
+  font-weight: 500;
+  font-size: 13px;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.safety-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.danger-btn, .ok-btn {
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.danger-btn {
+  background: #FF3D00;
+  color: white;
+}
+
+.ok-btn {
+  background: #E3F2FD;
+  color: #2196F3;
+}
+
+.health-quick-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 16px 16px;
+}
+
+.quick-icon-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.quick-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.quick-icon-circle.purple { background: #F3E5F5; color: #9C27B0; }
+.quick-icon-circle.blue { background: #E3F2FD; color: #2196F3; }
+.quick-icon-circle.green { background: #E8F5E9; color: #4CAF50; }
+.quick-icon-circle.purple-light { background: #EDE7F6; color: #673AB7; }
+.quick-icon-circle.red { background: #FFEBEE; color: #F44336; }
+
+.quick-icon-label { font-size: 10px; color: #999; text-align: center; }
+
+.steps-section {
+  background: #E8F5E9;
+  border-radius: 14px;
+  margin: 0 16px 16px;
+  padding: 14px;
+}
+
+.steps-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.steps-title { font-weight: 600; font-size: 14px; color: #2E7D32; }
+.steps-plus {
+  background: rgba(255,255,255,0.6);
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2E7D32;
+  cursor: pointer;
+}
+
+.steps-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.step-item { text-align: center; }
+.step-label { font-size: 11px; color: #558B2F; }
+.step-number { font-size: 14px; font-weight: 500; color: #1B5E20; margin-top: 2px; }
+
+/* ===== 我的页面 ===== */
+.mine-header {
+  background: linear-gradient(180deg, #E3F2FD, #f5f7fa);
+  padding: 30px 20px 20px;
+  border-radius: 0 0 24px 24px;
+}
+
+.mine-avatar-section {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.mine-avatar-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #f0f4f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #666;
+}
+
+.mine-name { font-size: 18px; font-weight: 500; color: #1a3347; }
+
+.menu-list {
+  background: white;
+  border: 1px solid #f0f2f5;
+  border-radius: 14px;
+  margin: 16px 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f5f5f5;
+  cursor: pointer;
+}
+
+.menu-item:last-child { border-bottom: none; }
+
+.menu-left { display: flex; align-items: center; gap: 12px; }
+.menu-icon { font-size: 18px; }
+.menu-text { font-size: 14px; color: #333; }
+.menu-arrow { color: #ccc; font-size: 18px; }
+
+.menu-icon.blue { color: #2196F3; }
+.menu-icon.red { color: #F44336; }
+.menu-icon.pink { color: #E91E63; }
+.menu-icon.green { color: #4CAF50; }
+.menu-icon.orange { color: #FF9800; }
+.menu-icon.blue-light { color: #3F51B5; }
+.menu-icon.red-light { color: #F44336; }
+
+.settings-section {
+  background: white;
+  border: 1px solid #f0f2f5;
+  border-radius: 14px;
+  margin: 10px 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.setting-item:last-child { border-bottom: none; }
+.setting-left { display: flex; align-items: center; gap: 12px; }
+.setting-icon { font-size: 18px; }
+.setting-text { font-size: 14px; color: #333; }
+
+.setting-icon.red { color: #F44336; }
+.setting-icon.blue { color: #2196F3; }
+
+.toggle-switch {
+  width: 44px;
+  height: 24px;
+  background: #ddd;
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+}
+
+.toggle-switch.active { background: #4CAF50; }
+
+.toggle-switch::after {
+  content: '';
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s;
+}
+
+.toggle-switch.active::after { transform: translateX(20px); }
+
+/* ===== AI 助手弹窗 ===== */
+.ai-chat-window {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  width: 320px;
+  max-width: 90%;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  border: 1px solid #e8ecf0;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  max-height: 400px;
+}
+
+.ai-chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f2f5;
+  background: #E3F2FD;
+  border-radius: 16px 16px 0 0;
+}
+
+.ai-chat-title { font-weight: 600; font-size: 14px; color: #1a3347; }
+.ai-chat-close { background: none; border: none; font-size: 20px; color: #999; cursor: pointer; }
+
+.ai-chat-body {
+  flex: 1;
+  padding: 12px 16px;
+  overflow-y: auto;
+  max-height: 240px;
+  background: #fafbfc;
+}
+
+.ai-message {
+  background: #E3F2FD;
+  padding: 10px 14px;
+  border-radius: 12px 12px 12px 4px;
+  font-size: 13px;
+  color: #1a3347;
+  margin-bottom: 10px;
+}
+
+.chat-msg {
+  margin-bottom: 8px;
+}
+
+.chat-msg.user {
+  text-align: right;
+}
+
+.chat-msg.user .msg-bubble {
+  background: #2196F3;
+  color: white;
+  border-radius: 12px 12px 4px 12px;
+  display: inline-block;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.chat-msg.ai .msg-bubble {
+  background: #f0f2f5;
+  color: #333;
+  border-radius: 12px 12px 12px 4px;
+  display: inline-block;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.ai-chat-footer {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid #f0f2f5;
+}
+
+.ai-input {
+  flex: 1;
+  border: 1px solid #e8ecf0;
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 13px;
+  outline: none;
+}
+
+.ai-send-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  background: #2196F3;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ===== 弹窗通用样式 ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.modal-card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  width: 340px;
+  max-width: 92%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+
+.profile-modal, .password-modal, .address-modal, .related-modal,
+.volunteer-modal, .butler-modal, .orders-modal, .member-modal,
+.vitals-modal, .service-modal {
+  width: 380px;
+}
+
+.modal-top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.modal-title { font-size: 18px; font-weight: 600; color: #1a3347; }
+.modal-close { background: none; border: none; font-size: 24px; color: #999; cursor: pointer; }
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-cancel, .btn-confirm {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.btn-confirm {
+  background: #2196F3;
+  color: white;
+}
+
+/* ===== 个人信息弹窗 ===== */
+.profile-content {
+  padding: 8px 0;
+}
+
+.profile-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.profile-item:last-child {
+  border-bottom: none;
+}
+
+.profile-label {
+  color: #999;
+  font-weight: 500;
+}
+
+.profile-value {
+  color: #333;
+  font-weight: 500;
+}
+
+.profile-actions {
+  margin-top: 16px;
+}
+
+/* ===== 修改密码弹窗 ===== */
+.password-form {
+  padding: 8px 0;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e8ecf0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #2196F3;
+}
+
+/* ===== 地址管理弹窗 ===== */
+.address-list, .related-list, .order-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.address-item, .related-item, .order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.address-item:last-child, .related-item:last-child, .order-item:last-child {
+  border-bottom: none;
+}
+
+.addr-info {
+  flex: 1;
+}
+
+.addr-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+}
+
+.addr-detail {
+  font-size: 13px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.addr-default {
+  display: inline-block;
+  background: #E3F2FD;
+  color: #2196F3;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.addr-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.addr-edit, .addr-delete {
+  padding: 4px 12px;
+  border: 1px solid #e8ecf0;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.addr-delete {
+  color: #F44336;
+  border-color: #FFCDD2;
+}
+
+/* ===== 关联用户弹窗 ===== */
+.related-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.related-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #E3F2FD;
+  color: #2196F3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.related-info {
+  flex: 1;
+}
+
+.related-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+}
+
+.related-relation {
+  font-size: 13px;
+  color: #666;
+}
+
+.related-phone {
+  font-size: 12px;
+  color: #999;
+}
+
+.related-delete {
+  padding: 4px 12px;
+  border: 1px solid #FFCDD2;
+  border-radius: 6px;
+  background: #FFEBEE;
+  color: #F44336;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* ===== 志愿者弹窗 ===== */
+.volunteer-card, .butler-card {
+  padding: 12px 0;
+}
+
+.volunteer-avatar, .butler-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #E3F2FD;
+  color: #2196F3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 24px;
+  margin: 0 auto 12px;
+}
+
+.volunteer-detail, .butler-detail {
+  text-align: center;
+}
+
+.volunteer-name, .butler-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+}
+
+.volunteer-org, .butler-title {
+  font-size: 14px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.volunteer-phone, .butler-phone {
+  font-size: 14px;
+  color: #2196F3;
+  margin-top: 4px;
+}
+
+.volunteer-desc, .butler-desc {
+  font-size: 13px;
+  color: #666;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.butler-actions {
+  margin-top: 16px;
+}
+
+/* ===== 订单弹窗 ===== */
+.order-item {
+  display: block;
+  padding: 12px 0;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.order-id {
+  font-size: 12px;
+  color: #999;
+}
+
+.order-status {
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+
+.order-status.completed {
+  background: #E8F5E9;
+  color: #4CAF50;
+}
+
+.order-status.processing {
+  background: #FFF3E0;
+  color: #FF9800;
+}
+
+.order-status.pending {
+  background: #E3F2FD;
+  color: #2196F3;
+}
+
+.order-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-service {
+  font-size: 14px;
+  color: #333;
+}
+
+.order-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.order-amount {
+  font-weight: 600;
+  font-size: 16px;
+  color: #1a3347;
+}
+
+/* ===== 会员账户弹窗 ===== */
+.member-content {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.member-level {
+  margin-bottom: 20px;
+}
+
+.level-badge {
+  font-size: 48px;
+  margin-bottom: 4px;
+}
+
+.level-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a3347;
+}
+
+.member-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #999;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a3347;
+  margin-top: 4px;
+}
+
+/* ===== 健康上报弹窗 ===== */
+.vitals-form, .service-form {
+  padding: 4px 0 12px;
+}
+
+.form-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.form-label {
+  font-weight: 500;
+  color: #666;
+  font-size: 14px;
+  min-width: 80px;
+}
+
+.stepper {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  gap: 8px;
+  align-items: center;
+  width: 180px;
+}
+
+.step-btn {
+  border: 1px solid #e8ecf0;
+  border-radius: 8px;
+  padding: 6px 0;
+  background: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.step-value {
+  border: 1px solid #e8ecf0;
+  border-radius: 8px;
+  padding: 6px 0;
+  text-align: center;
+  font-weight: 500;
+  background: #f8f9fa;
+}
+
+.bp-input {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 180px;
+}
+
+.bp-input input {
+  flex: 1;
+  border: 1px solid #e8ecf0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  width: 70px;
+}
+
+.wide-input {
+  width: 180px;
+  border: 1px solid #e8ecf0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.wide-select {
+  width: 180px;
+  border: 1px solid #e8ecf0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 420px;
+  background: white;
+  border-radius: 16px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 300;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  border: 1px solid #f0f2f5;
+}
+
+.toast-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  background: #4CAF50;
+  color: white;
+}
+
+.toast-content { flex: 1; }
+.toast-title { font-weight: 600; font-size: 14px; color: #1a3347; }
+.toast-desc { font-size: 12px; color: #999; margin-top: 2px; }
+.toast-close { background: none; border: none; color: #ccc; font-size: 18px; cursor: pointer; }
+
+/* ===== 通用工具 ===== */
+.no-data {
+  text-align: center;
+  color: #999;
+  padding: 20px 0;
+  font-size: 14px;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 380px) {
+  .grid-row-3col {
+    gap: 12px 4px;
+  }
+  .grid-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+  .health-cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .steps-content {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .sos-big-btn {
+    width: 100px;
+    height: 100px;
+  }
+  .sos-icon {
+    font-size: 34px;
+  }
+  .sos-text {
+    font-size: 15px;
+  }
+  .ai-chat-window {
+    width: 280px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-right {
+    gap: 6px;
+  }
+  .ai-assistant {
+    width: 36px;
+    height: 36px;
+  }
+  .avatar-mini {
+    width: 36px;
+    height: 36px;
+  }
+  .modal-card {
+    width: 90%;
+  }
+  .vitals-modal, .service-modal, .profile-modal, .password-modal,
+  .address-modal, .related-modal, .volunteer-modal, .butler-modal,
+  .orders-modal, .member-modal {
+    width: 90%;
+  }
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .form-label {
+    min-width: auto;
+  }
+  .stepper, .bp-input, .wide-input, .wide-select {
+    width: 100%;
+  }
+  .member-stats {
+    grid-template-columns: 1fr;
+  }
+}
+</style>把老人端界面设置成这样
+</user_query>

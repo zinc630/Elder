@@ -1,0 +1,5 @@
+# 接通智慧助手：复制本文件为同目录下的 local-deepseek.yml，填写密钥后重启后端。
+# 文件已加入 .gitignore，勿把真实密钥提交到仓库。
+# 密钥在 https://platform.deepseek.com 创建
+deepseek:
+  api-key: sk-请替换为你的密钥

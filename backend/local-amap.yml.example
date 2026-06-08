@@ -1,0 +1,7 @@
+# 接通高德地图 POI（找医院 / 找医生）：
+# 1. 复制本文件为 local-amap.yml
+# 2. 在 https://console.amap.com/dev/key/app 创建「Web 服务」类型 Key
+# 3. 重启 backend
+
+amap:
+  web-key: 你的高德Web服务Key

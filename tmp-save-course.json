@@ -1,0 +1,33 @@
+{
+  "id": "course-002",
+  "icon": "❤️",
+  "category": "健康讲座",
+  "title": "高血压的日常管理",
+  "description": "专业医师讲解血压监测、用药与饮食注意事项。",
+  "duration": "40分钟",
+  "rating": 4.8,
+  "imageUrl": "",
+  "lessons": [
+    {
+      "id": "l1",
+      "title": "认识高血压",
+      "content": "病因、分级与长期风险，为何需要持续管理。",
+      "durationMinutes": 3,
+      "videoUrl": "/api/v1/public/media/3d7ecfe4932b4dc2a7dcb47511c631e8.mp4"
+    },
+    {
+      "id": "l2",
+      "title": "居家监测",
+      "content": "正确测量血压的时间与方法，记录表使用说明。",
+      "durationMinutes": 14,
+      "videoUrl": ""
+    },
+    {
+      "id": "l3",
+      "title": "生活方式",
+      "content": "低盐饮食、适量运动与作息建议。",
+      "durationMinutes": 14,
+      "videoUrl": ""
+    }
+  ]
+}

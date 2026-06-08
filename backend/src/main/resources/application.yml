@@ -1,0 +1,52 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: elder-backend
+  servlet:
+    multipart:
+      max-file-size: 128MB
+      max-request-size: 128MB
+  # 在 backend 目录放 local-deepseek.yml / local-mysql.yml（见对应 example），无需改系统环境变量
+  config:
+    import:
+      - optional:file:./local-deepseek.yml
+      - optional:file:./local-mysql.yml
+      - optional:file:./local-amap.yml
+
+amap:
+  enabled: true
+  web-key: ${AMAP_WEB_KEY:}
+  search-radius-meters: 5000
+  max-results: 8
+
+
+
+vitals:
+  hrLow: 50
+  hrHigh: 120
+  sbpLow: 90
+  sbpHigh: 160
+  dbpLow: 60
+  dbpHigh: 100
+
+call:
+  ringTimeoutSec: 30
+  primaryMaxAttempts: 4
+  backupMaxAttempts: 2
+  primaryGuardianPhone: "10086"
+  backupGuardianPhone: "10010"
+
+elder:
+  portal-upload:
+    dir: ./data/portal-uploads
+  portal-data:
+    file: ./data/portal-content.json
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+

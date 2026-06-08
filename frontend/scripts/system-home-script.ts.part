@@ -1,0 +1,353 @@
+<script setup lang="ts">
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from "vue";
+import { deepSeekChat, type ChatTurn } from "../api/deepseek";
+import { fetchHomeSummary, type PublicHomeSummary } from "../api/home";
+
+const isScrolled = ref(false);
+const showAssistant = ref(false);
+const showBackTop = ref(false);
+const aiBusy = ref(false);
+const aiDraft = ref("");
+const messagesEl = ref<HTMLElement | null>(null);
+const aiInputRef = ref<HTMLInputElement | null>(null);
+
+const homeSummary = ref<PublicHomeSummary | null>(null);
+const homeNotice = ref("");
+const deepSeekReady = ref(false);
+
+let msgSeq = 0;
+let observer: IntersectionObserver | null = null;
+let countObserver: IntersectionObserver | null = null;
+
+const heroTitleChars = "监测 · 预警 · 服务 · 沟通".split("");
+
+interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+}
+
+const welcomeText = computed(() =>
+  deepSeekReady.value
+    ? "您好，我是银发智盾智慧助手（已接入 DeepSeek）。在下方输入问题即可获得解答，也可点击下方快捷问题。"
+    : "您好，我是银发智盾智慧助手（当前为演示模式，未配置 DeepSeek 时将使用本地关键词指引）。在下方输入问题即可。"
+);
+
+const chatMessages = ref<ChatMessage[]>([]);
+
+watch(
+  welcomeText,
+  (text) => {
+    const w = chatMessages.value.find((m) => m.id === "welcome");
+    if (w) w.text = text;
+    else chatMessages.value.unshift({ id: "welcome", role: "assistant", text });
+  },
+  { immediate: true }
+);
+
+const quickPrompts = ["如何登录？", "家属端能做什么？", "服务机构工单入口", "管理端报表在哪"];
+
+type NumberItem = {
+  value: string;
+  unit: string;
+  label: string;
+  isCount: boolean;
+  countTarget: number;
+};
+
+const numbers = ref<NumberItem[]>([
+  { value: "4", unit: "大角色", label: "长者·家属·机构·管理", isCount: false, countTarget: 0 },
+  { value: "6", unit: "大模块", label: "管理端核心能力", isCount: false, countTarget: 0 },
+  { value: "", unit: "", label: "DeepSeek 智能助手", isCount: true, countTarget: 99.9 },
+  { value: "", unit: "覆盖", label: "手机·平板·电脑·大屏", isCount: true, countTarget: 100 }
+]);
+
+const gridPortals = [
+  { role: "ELDER" as const, title: "长者端", sub: "体征监测 · 一键呼救", icon: "👴", tone: "tone-elder" },
+  { role: "CHILD" as const, title: "家属端", sub: "告警接收 · 位置追踪", icon: "👨‍👩‍👧", tone: "tone-child" },
+  { role: "AGENCY" as const, title: "服务机构", sub: "派单管理 · 工单流转", icon: "🏥", tone: "tone-agency" },
+  { role: "ADMIN" as const, title: "管理端", sub: "数据大屏 · 报表分析", icon: "🛡️", tone: "tone-admin" }
+];
+
+const clients = [
+  { icon: "💻", name: "电脑端" },
+  { icon: "📱", name: "手机端" },
+  { icon: "📋", name: "平板端" },
+  { icon: "🖥️", name: "大屏端" }
+];
+
+const activities = [
+  { icon: "🎭", tag: "节目表演", title: "京剧专场《贵妃醉酒》", time: "2024.12.25 14:00", location: "多功能厅", desc: "特邀市京剧团带来经典剧目表演" },
+  { icon: "🎄", tag: "节日庆典", title: "圣诞节联欢晚会", time: "2024.12.24 18:00", location: "一楼大厅", desc: "圣诞老人派发礼物，合唱团献唱" },
+  { icon: "🧘", tag: "运动健身", title: "太极拳晨练班", time: "每日 07:00", location: "户外花园", desc: "专业教练指导，强身健体" }
+];
+
+const lifeServices = [
+  { icon: "🛒", title: "代购跑腿", desc: "日常生活用品代购，专人专送", features: ["超市代购", "药品代取", "日用品配送"], bg: "linear-gradient(135deg, #eff6ff, #dbeafe)" },
+  { icon: "💳", title: "缴费代办", desc: "水电煤话费一键代缴", features: ["水电缴费", "话费充值", "物业代缴"], bg: "linear-gradient(135deg, #f0fdf4, #dcfce7)" },
+  { icon: "🧹", title: "家政保洁", desc: "专业保洁团队", features: ["日常打扫", "深度保洁", "衣物清洗"], bg: "linear-gradient(135deg, #fef3c7, #fef9c3)" },
+  { icon: "🍱", title: "助餐配送", desc: "营养餐食定时配送", features: ["营养套餐", "特殊饮食", "节日加餐"], bg: "linear-gradient(135deg, #fce7f3, #fbcfe8)" }
+];
+
+const learningCourses = [
+  { icon: "🛡️", category: "反诈科普", title: "老年人防诈骗指南", desc: "识别常见诈骗手段", duration: "25分钟", views: "2.3万", rating: "4.9" },
+  { icon: "❤️", category: "健康讲座", title: "高血压的日常管理", desc: "专业医师讲解", duration: "40分钟", views: "1.8万", rating: "4.8" },
+  { icon: "📱", category: "手机培训", title: "智能手机基础操作", desc: "微信视频通话轻松学会", duration: "30分钟", views: "3.5万", rating: "4.9" }
+];
+
+const newsList = [
+  { icon: "📋", title: "国务院办公厅关于发展银发经济的意见", summary: "加快银发经济规模化发展...", date: "2024-12-20", source: "国务院办公厅" },
+  { icon: "📰", title: "2024智慧养老产业市场规模突破万亿", summary: "AI技术深度应用...", date: "2024-12-10", source: "新华网" },
+  { icon: "🔬", title: "AI智能监测设备在养老机构的创新应用", summary: "跌倒检测、体征监测...", date: "2024-11-28", source: "科技日报" }
+];
+
+const adminModules = [
+  { title: "数据大屏 / 仪表盘", desc: "长者规模、今日告警、工单与设备运营总览" },
+  { title: "健康监测 & 预警", desc: "多长者体征表、跌倒/围栏类告警、规则说明" },
+  { title: "服务派单管理", desc: "预约建单、状态流转、一键派单建议" },
+  { title: "亲情互动看板", desc: "相册、即时通讯、用药与生日关怀时间线" },
+  { title: "数据管理 / 报表", desc: "健康趋势、满意度统计、用户与权限管理" },
+  { title: "外呼升级", desc: "告警外呼链路中的待处理呼叫列表" }
+];
+
+const continueTo = computed(() => {
+  const role = localStorage.getItem("elder.role");
+  if (role === "ELDER") return "/elder/home";
+  if (role === "CHILD") return "/child/home";
+  if (role === "AGENCY") return "/agency/home";
+  if (role === "ADMIN") return "/admin/dashboard";
+  return "";
+});
+
+const statsLabel = computed(() => {
+  const s = homeSummary.value;
+  if (!s) return "立足养老行业，打造标准、易用、便捷的智慧康养综合管理平台";
+  return `平台已接入 ${s.elderCount} 位长者档案、${s.deviceCount} 台设备；今日告警 ${s.todayAlarms} 条、本月工单 ${s.monthlyTasks} 单（演示汇总）`;
+});
+
+function toggleAssistant() {
+  showAssistant.value = !showAssistant.value;
+}
+
+function toastDemo(msg: string) {
+  alert(msg);
+}
+
+function nextMsgId() {
+  msgSeq += 1;
+  return `m-${msgSeq}`;
+}
+
+function messagesToTurns(msgs: ChatMessage[]): ChatTurn[] {
+  return msgs.filter((m) => m.id !== "welcome").map((m) => ({ role: m.role, text: m.text }));
+}
+
+function smartReply(userText: string): string {
+  const t = userText.trim();
+  if (!t) {
+    return "请简单描述您的问题，例如「怎么登录」或「长者 SOS」。";
+  }
+
+  if (/帮助|你能|会什么|怎么用|功能/.test(t)) {
+    return (
+      "我可以帮您：\n" +
+      "· 说明长者端、家属端、服务机构、管理端的入口与用途；\n" +
+      "· 提示登录与注册（演示账号规则）；\n" +
+      "· 概括体征监测、告警、派单等模块。\n" +
+      "直接说角色名或关键词即可，也可点击下方快捷问题。"
+    );
+  }
+
+  if (/登录|账号|密码|进系统/.test(t)) {
+    return (
+      "登录：首页点「一键进入系统」或顶部「登录」，使用注册时的姓名与密码。" +
+      "演示环境请使用注册分配的 E（长者）/ C（家属）/ G（机构）/ A（管理）前缀账号完成绑定与登录。"
+    );
+  }
+
+  if (/注册|新用户|开户/.test(t)) {
+    return "新用户：顶部或 Hero 区有「新用户注册」，注册成功后会分配带前缀的系统 ID，请保存以便家属或机构绑定（演示）。";
+  }
+
+  if (/长者|老人|elder|sos|一键呼救|体征/.test(t)) {
+    return (
+      "长者端：「全角色覆盖」宫格选「长者端」进入登录。登录后可查看体征、SOS 等能力（演示数据）。" +
+      "若关心告警联动，也可问「家属端」。"
+    );
+  }
+
+  if (/家属|子女|child|地图|告警/.test(t)) {
+    return (
+      "家属端：宫格「家属端」登录后，可查看长者健康动态、地图与告警处理等（演示）。" +
+      "顶部导航亦可从「养老服务」了解相关模块。"
+    );
+  }
+
+  if (/机构|服务|派单|工单|agency/.test(t)) {
+    return "服务机构：选择「服务机构」登录，可进行派单、工单流转等运营管理（演示）。管理端另有报表与大屏总览。";
+  }
+
+  if (/管理|admin|报表|大屏|仪表盘/.test(t)) {
+    return "管理端：选择「管理端」登录；页面下方「平台优势」可查看数据大屏、健康预警、派单、报表等模块说明。";
+  }
+
+  if (/健康|心率|血压|血氧|监测|预警|跌倒|围栏/.test(t)) {
+    return "健康与预警：长者体征与告警由系统监测模块演示展示；家属端可接收与处理告警。具体以各端登录后的菜单为准（演示数据）。";
+  }
+
+  if (/你好|您好|hi\b|hello/i.test(t)) {
+    return "您好！需要找哪个入口或了解哪项功能？可以说「登录」「家属端」「工单」等关键词。";
+  }
+
+  return (
+    `关于「${t}」：当前为演示环境，我根据关键词做了指引。` +
+    "您可尝试「如何登录」「家属端能做什么」等说法，或从下方宫格直接进入对应角色。"
+  );
+}
+
+async function scrollChatToEnd() {
+  await nextTick();
+  const el = messagesEl.value;
+  if (el) el.scrollTop = el.scrollHeight;
+}
+
+async function sendAiMessage() {
+  const text = aiDraft.value.trim();
+  if (!text || aiBusy.value) return;
+  chatMessages.value.push({ id: nextMsgId(), role: "user", text });
+  aiDraft.value = "";
+  aiBusy.value = true;
+  await scrollChatToEnd();
+
+  let reply: string;
+  try {
+    reply = await deepSeekChat(messagesToTurns(chatMessages.value));
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn("[DeepSeek]", e);
+    const errText = e instanceof Error ? e.message.trim() : "";
+    if (errText) {
+      const hintNav = /未配置|密钥|DEEPSEEK|401|Unauthorized|503|余额不足|无法连接后端/i.test(errText);
+      reply = hintNav ? `${errText}\n\n${smartReply(text)}` : errText;
+    } else {
+      reply = smartReply(text);
+    }
+  }
+
+  chatMessages.value.push({ id: nextMsgId(), role: "assistant", text: reply });
+  aiBusy.value = false;
+  await scrollChatToEnd();
+}
+
+async function applyQuickPrompt(p: string) {
+  aiDraft.value = p;
+  await sendAiMessage();
+}
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === "Escape") showAssistant.value = false;
+}
+
+async function loadHomeSummary() {
+  try {
+    const data = await fetchHomeSummary();
+    homeSummary.value = data;
+    homeNotice.value = data.notice?.trim() || "";
+    deepSeekReady.value = !!data.deepSeekConfigured;
+    numbers.value = [
+      { value: String(data.roleCount), unit: "大角色", label: "长者·家属·机构·管理", isCount: false, countTarget: 0 },
+      { value: String(data.moduleCount), unit: "大模块", label: "管理端核心能力", isCount: false, countTarget: 0 },
+      { value: "", unit: "%", label: "DeepSeek 智能助手", isCount: true, countTarget: 99.9 },
+      { value: "", unit: "%", label: "手机·平板·电脑·大屏", isCount: true, countTarget: 100 }
+    ];
+    await nextTick();
+    initCountUp();
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn("[home/summary]", e);
+  }
+}
+
+function initScrollAnimations() {
+  const els = document.querySelectorAll(".sys-home [data-animate]");
+  observer?.disconnect();
+  observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const el = entry.target as HTMLElement;
+          const delay = el.dataset.delay || "0";
+          el.style.animationDelay = `${delay}s`;
+          el.classList.add("animated", el.dataset.animate || "fadeInUp");
+          observer?.unobserve(el);
+        }
+      });
+    },
+    { threshold: 0.15, rootMargin: "0px 0px -50px 0px" }
+  );
+  els.forEach((el) => observer?.observe(el));
+}
+
+function initCountUp() {
+  countObserver?.disconnect();
+  countObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const el = entry.target as HTMLElement;
+          const target = parseFloat(el.dataset.target || "0");
+          const dur = 2000;
+          const st = performance.now();
+          const isDec = target % 1 !== 0;
+          function upd(t: number) {
+            const p = Math.min((t - st) / dur, 1);
+            const eased = 1 - Math.pow(1 - p, 3);
+            const c = target * eased;
+            el.textContent = isDec ? c.toFixed(1) : Math.floor(c).toString();
+            if (p < 1) requestAnimationFrame(upd);
+            else el.textContent = isDec ? target.toFixed(1) : target.toString();
+          }
+          requestAnimationFrame(upd);
+          countObserver?.unobserve(el);
+        }
+      });
+    },
+    { threshold: 0.5 }
+  );
+  document.querySelectorAll(".sys-home .count-up").forEach((el) => countObserver?.observe(el));
+}
+
+function handleParallax() {
+  const hero = document.querySelector(".sys-home .section-hero") as HTMLElement | null;
+  if (hero) hero.style.backgroundPositionY = `${window.scrollY * 0.4}px`;
+}
+
+function handleScroll() {
+  isScrolled.value = window.scrollY > 50;
+  showBackTop.value = window.scrollY > 500;
+  handleParallax();
+}
+
+watch(showAssistant, (open) => {
+  document.body.style.overflow = open ? "hidden" : "";
+});
+
+onMounted(() => {
+  loadHomeSummary();
+  initScrollAnimations();
+  initCountUp();
+  window.addEventListener("scroll", handleScroll, { passive: true });
+  window.addEventListener("keydown", onKeydown);
+  handleScroll();
+});
+
+onUnmounted(() => {
+  window.removeEventListener("scroll", handleScroll);
+  window.removeEventListener("keydown", onKeydown);
+  observer?.disconnect();
+  countObserver?.disconnect();
+  document.body.style.overflow = "";
+});
+</script>
